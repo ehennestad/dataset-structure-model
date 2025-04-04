@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DataLocationModel",
-  "description": "Schema for the DataLocationModel class which manages data location configurations for the NANSEN toolbox",
+  "description": "Schema for a flexible data location model that manages configurations for organizing and accessing hierarchical data structures",
   "type": "object",
   "required": ["Data", "Preferences"],
   "properties": {
@@ -31,131 +31,235 @@
   "definitions": {
     "DataLocationItem": {
       "type": "object",
-      "required": ["Name", "Uuid", "Type", "RootPath", "ExamplePath", "SubfolderStructure", "MetaDataDef"],
+      "required": ["displayName", "identifier", "category", "storagePaths", "pathTemplate", "hierarchyDefinition", "metadataExtractors"],
       "properties": {
-        "Name": {
+        "displayName": {
           "type": "string",
-          "description": "Name of the data location"
+          "description": "Human-readable name of the data location"
         },
-        "Uuid": {
+        "identifier": {
           "type": "string",
           "description": "Unique identifier for the data location"
         },
-        "Type": {
+        "category": {
           "type": "string",
-          "description": "Type of the data location (e.g., 'recorded', 'processed')",
-          "enum": ["recorded", "processed", "derived", "imported"]
+          "description": "Category of the data location defining its role in the data lifecycle",
+          "enum": ["raw", "processed", "derived", "imported", "reference", "temporary", "archive", "custom"],
+          "default": "raw"
         },
-        "RootPath": {
+        "storagePaths": {
           "type": "array",
-          "description": "Array of root path configurations",
+          "description": "Array of storage path configurations for different environments",
           "items": {
-            "$ref": "#/definitions/RootPathItem"
+            "$ref": "#/definitions/StoragePathItem"
           }
         },
-        "ExamplePath": {
+        "pathTemplate": {
           "type": "string",
-          "description": "Example path constructed from root path and subfolder structure"
+          "description": "Template path showing the expected structure with placeholders (e.g., '{rootPath}/{subject}/{session}')"
         },
-        "SubfolderStructure": {
+        "hierarchyDefinition": {
           "type": "array",
-          "description": "Array of subfolder configurations",
+          "description": "Definition of the hierarchical folder structure",
           "items": {
-            "$ref": "#/definitions/SubfolderStructureItem"
+            "$ref": "#/definitions/HierarchyLevelItem"
           }
         },
-        "MetaDataDef": {
+        "metadataExtractors": {
           "type": "array",
-          "description": "Array of metadata extraction definitions",
+          "description": "Definitions for extracting metadata from paths",
           "items": {
-            "$ref": "#/definitions/MetaDataDefItem"
+            "$ref": "#/definitions/MetadataExtractorItem"
           }
         },
-        "DataSubfolders": {
+        "additionalFolders": {
           "type": "array",
-          "description": "Optional array of data subfolder names",
+          "description": "Optional additional folders within the hierarchy",
           "items": {
             "type": "string"
           }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Optional tags for categorizing or filtering data locations",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional detailed description of the data location's purpose"
+        },
+        "customProperties": {
+          "type": "object",
+          "description": "Optional custom properties for domain-specific extensions"
         }
       }
     },
-    "RootPathItem": {
+    "StoragePathItem": {
       "type": "object",
-      "required": ["Key", "Value"],
+      "required": ["pathId", "locationPath"],
       "properties": {
-        "Key": {
+        "pathId": {
           "type": "string",
-          "description": "Unique identifier for the root path"
+          "description": "Unique identifier for the storage path"
         },
-        "Value": {
+        "locationPath": {
           "type": "string",
           "description": "Actual file system path"
         },
-        "DiskName": {
+        "volumeName": {
           "type": "string",
           "description": "Name of the disk/volume where the path is located"
         },
-        "DiskType": {
+        "storageType": {
           "type": "string",
-          "description": "Type of disk (e.g., 'Local', 'External')",
-          "enum": ["Local", "External"]
+          "description": "Type of storage medium",
+          "enum": ["local", "external", "network", "cloud", "removable", "virtual"],
+          "default": "local"
+        },
+        "environment": {
+          "type": "string",
+          "description": "Computing environment this path is valid for (e.g., 'windows-lab', 'mac-home')"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority order when multiple valid paths exist (lower number = higher priority)",
+          "minimum": 1
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Whether this storage location is currently available",
+          "default": true
         }
       }
     },
-    "SubfolderStructureItem": {
+    "HierarchyLevelItem": {
       "type": "object",
-      "required": ["Name", "Type", "Expression", "IgnoreList"],
+      "required": ["levelName", "entityType", "matchPattern", "excludePatterns"],
       "properties": {
-        "Name": {
+        "levelName": {
           "type": "string",
-          "description": "Name of the subfolder"
+          "description": "Name of this hierarchy level (e.g., 'subjects', 'sessions')"
         },
-        "Type": {
+        "entityType": {
           "type": "string",
-          "description": "Type of the subfolder (e.g., 'Subject', 'Session')"
+          "description": "Type of entity this level represents (e.g., 'subject', 'session', 'recording')",
+          "examples": ["subject", "session", "recording", "experiment", "dataset", "run", "scan"]
         },
-        "Expression": {
+        "matchPattern": {
           "type": "string",
-          "description": "Regular expression pattern for matching folders"
+          "description": "Regular expression pattern for matching valid folders at this level"
         },
-        "IgnoreList": {
+        "excludePatterns": {
           "type": "array",
-          "description": "List of folder names to ignore",
+          "description": "Patterns for folders to exclude at this level",
           "items": {
             "type": "string"
+          }
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Whether this level must exist in the hierarchy",
+          "default": true
+        },
+        "isVariable": {
+          "type": "boolean",
+          "description": "Whether this level can have variable names (true) or has a fixed name (false)",
+          "default": true
+        },
+        "fixedName": {
+          "type": "string",
+          "description": "Fixed folder name if isVariable is false"
+        },
+        "metadataMapping": {
+          "type": "object",
+          "description": "Mapping between folder name patterns and metadata values"
+        }
+      }
+    },
+    "MetadataExtractorItem": {
+      "type": "object",
+      "required": ["metadataField", "extractionMethod"],
+      "properties": {
+        "metadataField": {
+          "type": "string",
+          "description": "Name of the metadata field to extract (e.g., 'subjectId', 'sessionDate')"
+        },
+        "hierarchyLevel": {
+          "type": ["integer", "null"],
+          "description": "Index of the hierarchy level containing this metadata (0-based)"
+        },
+        "extractionMethod": {
+          "type": "string",
+          "description": "Method for extracting the metadata value",
+          "enum": ["substring", "regex", "function", "template", "fixed"]
+        },
+        "extractionPattern": {
+          "type": "string",
+          "description": "Pattern for extraction (indices, regex pattern, or template)"
+        },
+        "valueFormat": {
+          "type": "string",
+          "description": "Format specification for parsing the extracted value (e.g., date format)"
+        },
+        "extractorFunction": {
+          "type": "string",
+          "description": "Name of function to call for extracting metadata"
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Default value to use if extraction fails"
+        },
+        "dataType": {
+          "type": "string",
+          "description": "Expected data type of the extracted value",
+          "enum": ["string", "number", "date", "time", "datetime", "boolean"]
+        },
+        "validation": {
+          "type": "object",
+          "description": "Validation rules for the extracted value",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Regex pattern the value must match"
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for string values"
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for string values"
+            }
           }
         }
       }
     },
-    "MetaDataDefItem": {
+    "PathTemplate": {
       "type": "object",
-      "required": ["VariableName", "SubfolderLevel", "StringDetectMode", "StringDetectInput", "StringFormat", "FunctionName"],
+      "required": ["template"],
       "properties": {
-        "VariableName": {
+        "template": {
           "type": "string",
-          "description": "Name of the metadata variable (e.g., 'Subject ID', 'Session ID')"
+          "description": "Template string with placeholders (e.g., '{rootPath}/{subject}/{session}')"
         },
-        "SubfolderLevel": {
-          "type": ["integer", "null"],
-          "description": "Level of the subfolder containing the metadata"
-        },
-        "StringDetectMode": {
-          "type": "string",
-          "description": "Method for detecting the string ('ind', 'expr', 'func')",
-          "enum": ["ind", "expr", "func"]
-        },
-        "StringDetectInput": {
-          "type": "string",
-          "description": "Input for the string detection method (indices or regex pattern)"
-        },
-        "StringFormat": {
-          "type": "string",
-          "description": "Format string for parsing dates and times"
-        },
-        "FunctionName": {
-          "type": "string",
-          "description": "Name of function to call for extracting metadata"
+        "placeholders": {
+          "type": "object",
+          "description": "Definitions for template placeholders",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "description": "Source of the placeholder value (e.g., 'metadata', 'constant')"
+              },
+              "value": {
+                "type": "string",
+                "description": "Value or reference for the placeholder"
+              }
+            }
+          }
         }
       }
     }
@@ -164,67 +268,153 @@
     {
       "Data": [
         {
-          "Name": "2P Raw Data",
-          "Uuid": "550e8400-e29b-41d4-a716-446655440000",
-          "Type": "recorded",
-          "RootPath": [
+          "displayName": "Two-Photon Recordings",
+          "identifier": "550e8400-e29b-41d4-a716-446655440000",
+          "category": "raw",
+          "storagePaths": [
             {
-              "Key": "550e8400-e29b-41d4-a716-446655440001",
-              "Value": "D:\\Data\\2P_Recordings",
-              "DiskName": "DataDrive",
-              "DiskType": "External"
+              "pathId": "550e8400-e29b-41d4-a716-446655440001",
+              "locationPath": "D:\\Data\\2P_Recordings",
+              "volumeName": "DataDrive",
+              "storageType": "external",
+              "environment": "windows-lab",
+              "priority": 1,
+              "isAvailable": true
+            },
+            {
+              "pathId": "550e8400-e29b-41d4-a716-446655440002",
+              "locationPath": "/Volumes/DataDrive/2P_Recordings",
+              "volumeName": "DataDrive",
+              "storageType": "external",
+              "environment": "mac-analysis",
+              "priority": 1,
+              "isAvailable": true
             }
           ],
-          "ExamplePath": "D:\\Data\\2P_Recordings\\Mouse1\\Session1",
-          "SubfolderStructure": [
+          "pathTemplate": "{rootPath}/{subject}/{session}",
+          "hierarchyDefinition": [
             {
-              "Name": "Mouse1",
-              "Type": "Subject",
-              "Expression": "^[A-Za-z0-9]+$",
-              "IgnoreList": []
+              "levelName": "subjects",
+              "entityType": "subject",
+              "matchPattern": "^[A-Za-z0-9]+$",
+              "excludePatterns": ["temp", "test"],
+              "isRequired": true,
+              "isVariable": true
             },
             {
-              "Name": "Session1",
-              "Type": "Session",
-              "Expression": "^[A-Za-z0-9_-]+$",
-              "IgnoreList": []
+              "levelName": "sessions",
+              "entityType": "session",
+              "matchPattern": "^[A-Za-z0-9_-]+$",
+              "excludePatterns": [],
+              "isRequired": true,
+              "isVariable": true
             }
           ],
-          "MetaDataDef": [
+          "metadataExtractors": [
             {
-              "VariableName": "Subject ID",
-              "SubfolderLevel": 0,
-              "StringDetectMode": "ind",
-              "StringDetectInput": "1:end",
-              "StringFormat": "",
-              "FunctionName": "myproject.datalocation.getSubjectId"
+              "metadataField": "subjectId",
+              "hierarchyLevel": 0,
+              "extractionMethod": "substring",
+              "extractionPattern": "1:end",
+              "valueFormat": "",
+              "extractorFunction": "myproject.datalocation.getSubjectId",
+              "dataType": "string"
             },
             {
-              "VariableName": "Session ID",
-              "SubfolderLevel": 1,
-              "StringDetectMode": "ind",
-              "StringDetectInput": "1:end",
-              "StringFormat": "",
-              "FunctionName": "myproject.datalocation.getSessionId"
+              "metadataField": "sessionId",
+              "hierarchyLevel": 1,
+              "extractionMethod": "substring",
+              "extractionPattern": "1:end",
+              "valueFormat": "",
+              "extractorFunction": "myproject.datalocation.getSessionId",
+              "dataType": "string"
             },
             {
-              "VariableName": "Experiment Date",
-              "SubfolderLevel": null,
-              "StringDetectMode": "func",
-              "StringDetectInput": "",
-              "StringFormat": "yyyyMMdd",
-              "FunctionName": "myproject.datalocation.getExperimentDate"
+              "metadataField": "experimentDate",
+              "hierarchyLevel": null,
+              "extractionMethod": "function",
+              "extractionPattern": "",
+              "valueFormat": "yyyyMMdd",
+              "extractorFunction": "myproject.datalocation.getExperimentDate",
+              "dataType": "date"
             },
             {
-              "VariableName": "Experiment Time",
-              "SubfolderLevel": null,
-              "StringDetectMode": "func",
-              "StringDetectInput": "",
-              "StringFormat": "HHmmss",
-              "FunctionName": "myproject.datalocation.getExperimentTime"
+              "metadataField": "experimentTime",
+              "hierarchyLevel": null,
+              "extractionMethod": "function",
+              "extractionPattern": "",
+              "valueFormat": "HHmmss",
+              "extractorFunction": "myproject.datalocation.getExperimentTime",
+              "dataType": "time"
             }
           ],
-          "DataSubfolders": ["raw", "processed"]
+          "additionalFolders": ["raw", "processed"],
+          "tags": ["imaging", "two-photon", "calcium"],
+          "description": "Raw two-photon calcium imaging recordings",
+          "customProperties": {
+            "microscope": "Bruker",
+            "imagingDepth": "cortical layer 2/3"
+          }
+        },
+        {
+          "displayName": "Processed Imaging Data",
+          "identifier": "550e8400-e29b-41d4-a716-446655440003",
+          "category": "processed",
+          "storagePaths": [
+            {
+              "pathId": "550e8400-e29b-41d4-a716-446655440004",
+              "locationPath": "D:\\Data\\Processed",
+              "volumeName": "DataDrive",
+              "storageType": "external",
+              "environment": "windows-lab",
+              "priority": 1
+            }
+          ],
+          "pathTemplate": "{rootPath}/{subject}/{session}/processed",
+          "hierarchyDefinition": [
+            {
+              "levelName": "subjects",
+              "entityType": "subject",
+              "matchPattern": "^[A-Za-z0-9]+$",
+              "excludePatterns": [],
+              "isRequired": true,
+              "isVariable": true
+            },
+            {
+              "levelName": "sessions",
+              "entityType": "session",
+              "matchPattern": "^[A-Za-z0-9_-]+$",
+              "excludePatterns": [],
+              "isRequired": true,
+              "isVariable": true
+            },
+            {
+              "levelName": "processed",
+              "entityType": "dataType",
+              "matchPattern": "^processed$",
+              "excludePatterns": [],
+              "isRequired": true,
+              "isVariable": false,
+              "fixedName": "processed"
+            }
+          ],
+          "metadataExtractors": [
+            {
+              "metadataField": "subjectId",
+              "hierarchyLevel": 0,
+              "extractionMethod": "substring",
+              "extractionPattern": "1:end",
+              "dataType": "string"
+            },
+            {
+              "metadataField": "sessionId",
+              "hierarchyLevel": 1,
+              "extractionMethod": "substring",
+              "extractionPattern": "1:end",
+              "dataType": "string"
+            }
+          ],
+          "tags": ["processed", "motion-corrected"]
         }
       ],
       "Preferences": {
