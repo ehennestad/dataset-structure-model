@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DataLocationModel",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "MetaDataTemplates": {
+      "type": "object",
+      "description": "Named collections of metadata definitions.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "$ref": "#/definitions/metaDataDefinition" }
+      }
+    },
+    "Data": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/dataLocation" }
+    },
+    "Preferences": {
+      "type": "object",
+      "properties": {
+        "SourceID": { "type": "string" },
+        "DefaultDataLocation": { "type": "string" }
+      },
+      "required": ["SourceID", "DefaultDataLocation"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["Data", "Preferences"],
+
+  "definitions": {
+    "dataLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Uuid": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Type": { "type": "string" },
+        "RootPath": {
+          "type": "object",
+          "properties": {
+            "Key": { "type": "string" },
+            "Path": { "type": "string" },
+            "DiskName": { "type": "string" },
+            "DiskType": {
+              "type": "string",
+              "enum": ["Local", "Network", "External", "Cloud"]
+            }
+          },
+          "required": ["Key", "Path", "DiskType"],
+          "additionalProperties": false
+        },
+        "ExamplePath": { "type": "string" },
+        "SubfolderStructure": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/folderLevel" }
+        },
+        "MetaData": { "$ref": "#/definitions/metaDataBlock" }
+      },
+      "required": ["Uuid", "Name", "Type", "RootPath", "SubfolderStructure"]
+    },
+
+    "folderLevel": {
+      "type": "object",
+      "properties": {
+        "Name": { "type": "string" },
+        "EntityType": {
+          "type": "string",
+          "enum": ["folder", "file"] 
+        },
+        "Type": { "type": "string" },
+        "Expression": { "type": "string" },
+        "IgnoreList": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["Name", "EntityType"],
+      "additionalProperties": true
+    },
+
+    "metaDataBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "Definitions": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/metaDataDefinition" }
+            }
+          },
+          "required": ["Definitions"]
+        },
+        {
+          "properties": {
+            "TemplateRef": { "type": "string" },
+            "Overrides": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/metaDataDefinition" }
+            }
+          },
+          "required": ["TemplateRef"]
+        }
+      ]
+    },
+
+    "metaDataDefinition": {
+      "type": "object",
+      "properties": {
+        "VariableName": { "type": "string" },
+        "StructureLevelIndex": { "type": "integer" },
+        "StringDetectMode": { "type": "string" },
+        "StringDetectInput": { "type": "string" },
+        "StringFormat": { "type": "string" },
+        "ExtractorFunction": { "type": "string" }
+      },
+      "required": ["VariableName", "StructureLevelIndex"],
+      "additionalProperties": true
+    }
+  }
+}
