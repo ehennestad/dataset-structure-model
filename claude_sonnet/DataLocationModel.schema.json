@@ -1,0 +1,236 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DataLocationModel",
+  "description": "Schema for the DataLocationModel class which manages data location configurations for the NANSEN toolbox",
+  "type": "object",
+  "required": ["Data", "Preferences"],
+  "properties": {
+    "Data": {
+      "type": "array",
+      "description": "Array of data location items",
+      "items": {
+        "$ref": "#/definitions/DataLocationItem"
+      }
+    },
+    "Preferences": {
+      "type": "object",
+      "description": "User preferences for the DataLocationModel",
+      "required": ["DefaultDataLocation", "SourceID"],
+      "properties": {
+        "DefaultDataLocation": {
+          "type": "string",
+          "description": "UUID of the default data location"
+        },
+        "SourceID": {
+          "type": "string",
+          "description": "Computer name identifier of the source system"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "DataLocationItem": {
+      "type": "object",
+      "required": ["Name", "Uuid", "Type", "RootPath", "ExamplePath", "SubfolderStructure", "MetaDataDef"],
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Name of the data location"
+        },
+        "Uuid": {
+          "type": "string",
+          "description": "Unique identifier for the data location"
+        },
+        "Type": {
+          "type": "string",
+          "description": "Type of the data location (e.g., 'recorded', 'processed')",
+          "enum": ["recorded", "processed", "derived", "imported"]
+        },
+        "RootPath": {
+          "type": "array",
+          "description": "Array of root path configurations",
+          "items": {
+            "$ref": "#/definitions/RootPathItem"
+          }
+        },
+        "ExamplePath": {
+          "type": "string",
+          "description": "Example path constructed from root path and subfolder structure"
+        },
+        "SubfolderStructure": {
+          "type": "array",
+          "description": "Array of subfolder configurations",
+          "items": {
+            "$ref": "#/definitions/SubfolderStructureItem"
+          }
+        },
+        "MetaDataDef": {
+          "type": "array",
+          "description": "Array of metadata extraction definitions",
+          "items": {
+            "$ref": "#/definitions/MetaDataDefItem"
+          }
+        },
+        "DataSubfolders": {
+          "type": "array",
+          "description": "Optional array of data subfolder names",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "RootPathItem": {
+      "type": "object",
+      "required": ["Key", "Value"],
+      "properties": {
+        "Key": {
+          "type": "string",
+          "description": "Unique identifier for the root path"
+        },
+        "Value": {
+          "type": "string",
+          "description": "Actual file system path"
+        },
+        "DiskName": {
+          "type": "string",
+          "description": "Name of the disk/volume where the path is located"
+        },
+        "DiskType": {
+          "type": "string",
+          "description": "Type of disk (e.g., 'Local', 'External')",
+          "enum": ["Local", "External"]
+        }
+      }
+    },
+    "SubfolderStructureItem": {
+      "type": "object",
+      "required": ["Name", "Type", "Expression", "IgnoreList"],
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Name of the subfolder"
+        },
+        "Type": {
+          "type": "string",
+          "description": "Type of the subfolder (e.g., 'Subject', 'Session')"
+        },
+        "Expression": {
+          "type": "string",
+          "description": "Regular expression pattern for matching folders"
+        },
+        "IgnoreList": {
+          "type": "array",
+          "description": "List of folder names to ignore",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "MetaDataDefItem": {
+      "type": "object",
+      "required": ["VariableName", "SubfolderLevel", "StringDetectMode", "StringDetectInput", "StringFormat", "FunctionName"],
+      "properties": {
+        "VariableName": {
+          "type": "string",
+          "description": "Name of the metadata variable (e.g., 'Subject ID', 'Session ID')"
+        },
+        "SubfolderLevel": {
+          "type": ["integer", "null"],
+          "description": "Level of the subfolder containing the metadata"
+        },
+        "StringDetectMode": {
+          "type": "string",
+          "description": "Method for detecting the string ('ind', 'expr', 'func')",
+          "enum": ["ind", "expr", "func"]
+        },
+        "StringDetectInput": {
+          "type": "string",
+          "description": "Input for the string detection method (indices or regex pattern)"
+        },
+        "StringFormat": {
+          "type": "string",
+          "description": "Format string for parsing dates and times"
+        },
+        "FunctionName": {
+          "type": "string",
+          "description": "Name of function to call for extracting metadata"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "Data": [
+        {
+          "Name": "2P Raw Data",
+          "Uuid": "550e8400-e29b-41d4-a716-446655440000",
+          "Type": "recorded",
+          "RootPath": [
+            {
+              "Key": "550e8400-e29b-41d4-a716-446655440001",
+              "Value": "D:\\Data\\2P_Recordings",
+              "DiskName": "DataDrive",
+              "DiskType": "External"
+            }
+          ],
+          "ExamplePath": "D:\\Data\\2P_Recordings\\Mouse1\\Session1",
+          "SubfolderStructure": [
+            {
+              "Name": "Mouse1",
+              "Type": "Subject",
+              "Expression": "^[A-Za-z0-9]+$",
+              "IgnoreList": []
+            },
+            {
+              "Name": "Session1",
+              "Type": "Session",
+              "Expression": "^[A-Za-z0-9_-]+$",
+              "IgnoreList": []
+            }
+          ],
+          "MetaDataDef": [
+            {
+              "VariableName": "Subject ID",
+              "SubfolderLevel": 0,
+              "StringDetectMode": "ind",
+              "StringDetectInput": "1:end",
+              "StringFormat": "",
+              "FunctionName": "myproject.datalocation.getSubjectId"
+            },
+            {
+              "VariableName": "Session ID",
+              "SubfolderLevel": 1,
+              "StringDetectMode": "ind",
+              "StringDetectInput": "1:end",
+              "StringFormat": "",
+              "FunctionName": "myproject.datalocation.getSessionId"
+            },
+            {
+              "VariableName": "Experiment Date",
+              "SubfolderLevel": null,
+              "StringDetectMode": "func",
+              "StringDetectInput": "",
+              "StringFormat": "yyyyMMdd",
+              "FunctionName": "myproject.datalocation.getExperimentDate"
+            },
+            {
+              "VariableName": "Experiment Time",
+              "SubfolderLevel": null,
+              "StringDetectMode": "func",
+              "StringDetectInput": "",
+              "StringFormat": "HHmmss",
+              "FunctionName": "myproject.datalocation.getExperimentTime"
+            }
+          ],
+          "DataSubfolders": ["raw", "processed"]
+        }
+      ],
+      "Preferences": {
+        "DefaultDataLocation": "550e8400-e29b-41d4-a716-446655440000",
+        "SourceID": "DESKTOP-ABC123"
+      }
+    }
+  ]
+}
