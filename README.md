@@ -6,49 +6,26 @@ The "Dataset Structure Model" is a configuration framework for describing the st
 
 This model aims to be useful for scientific research, data analysis pipelines, and any application that deals with complex data hierarchies across multiple storage locations or computing environments.
 
-## Key Components
+## Repository Contents
 
-### Data Locations
+- **schema/**: JSON Schema definition for the Dataset Structure Model
+- **docs/**: Documentation for using the model
+- **examples/**: Example configurations for different types of datasets
 
-Each data location in the model represents a specific type of data with its own organization structure. Data locations include:
+## Key Features
 
-- **Display name and identifier**: Human-readable name and unique ID
-- **Category**: Classification of the data's role (raw, processed, derived, etc.)
-- **Storage paths**: Physical file system locations across different environments
-- **Path template**: Template showing the expected structure with placeholders
-- **Hierarchy definition**: Specification of the folder structure levels
-- **Metadata extractors**: Rules for extracting metadata from paths
+- **Standardized Dataset Description**: Define the structure of scientific datasets in a consistent, machine-readable format
+- **Physical and Semantic Mapping**: Capture both the physical layout on disk and the semantic organization of data
+- **Metadata Extraction**: Define rules for extracting metadata from file paths and names
+- **Cross-environment Support**: Handle datasets distributed across multiple storage locations and computing environments
+- **Entity Relationships**: Define semantic relationships between different types of entities in your data
+- **Validation**: Ensure metadata values conform to expected formats and constraints
 
-### Storage Paths
+## Getting Started
 
-Storage paths define where data is physically located across different environments:
-
-- **Path ID and location path**: Unique identifier and actual file system path
-- **Environment**: Computing environment this path is valid for (e.g., 'windows-lab', 'mac-home')
-- **Storage type**: Type of storage medium (local, external, network, cloud, etc.)
-- **Priority**: Order of preference when multiple valid paths exist
-- **Availability**: Whether the storage location is currently accessible
-
-### Hierarchy Definition
-
-The hierarchy definition specifies the folder structure of a data location:
-
-- **Level name and entity type**: Name and type of entity this level represents
-- **Match pattern**: Regular expression for matching valid folders
-- **Exclude patterns**: Patterns for folders to exclude
-- **Required/Variable flags**: Whether levels must exist and can have variable names
-- **Fixed name**: Specific folder name for non-variable levels
-- **Metadata mapping**: Mapping between folder patterns and metadata values
-
-### Metadata Extractors
-
-Metadata extractors define how to extract metadata from paths:
-
-- **Metadata field**: Name of the metadata field to extract
-- **Extraction method**: Method for extracting the value (substring, regex, function, etc.)
-- **Extraction pattern**: Pattern for extraction
-- **Data type**: Expected data type of the extracted value
-- **Validation**: Rules for validating the extracted value
+1. Review the [Schema Usage Guide](docs/schema_usage_guide.md) to understand the key concepts
+2. Explore the [example configurations](examples/) to see how the model can be applied to different types of datasets
+3. Learn about the different [data location categories](docs/data_location_categories.md) and how they're used in the model
 
 ## Example Use Cases
 
@@ -76,3 +53,15 @@ The model supports data processing workflows where:
 - Processing happens on high-performance computing clusters
 - Analysis occurs on researchers' personal workstations
 - Each environment has different paths to the same logical data
+
+## Schema Evolution
+
+The Dataset Structure Model uses semantic versioning to track changes to the schema. The current version is 1.0.0.
+
+## Contributing
+
+Contributions to improve the model are welcome! Please feel free to submit issues or pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -1,0 +1,369 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DatasetStructureModel",
+  "description": "A schema for describing the structure of scientific datasets, capturing both their physical layout on disk and their semantic organization.",
+  "type": "object",
+  "required": ["schemaVersion", "dataLocations", "preferences"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Version of the DatasetStructureModel schema using semantic versioning",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "metadataDefinitions": {
+      "type": "object",
+      "description": "Global definitions of metadata fields that can be referenced across data locations",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "dataType"],
+        "properties": {
+          "$id": {
+            "type": "string",
+            "description": "Optional unique identifier for this metadata definition (for JSON-LD compatibility)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the metadata field"
+          },
+          "dataType": {
+            "type": "string",
+            "enum": ["string", "number", "integer", "date", "time", "datetime", "boolean", "array", "object"],
+            "default": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what this metadata represents"
+          },
+          "validation": {
+            "type": "object",
+            "description": "Validation rules for this metadata field",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regex pattern the value must match"
+              },
+              "minLength": {
+                "type": "integer",
+                "description": "Minimum length for string values"
+              },
+              "maxLength": {
+                "type": "integer",
+                "description": "Maximum length for string values"
+              },
+              "minimum": {
+                "type": "number",
+                "description": "Minimum value for numeric values"
+              },
+              "maximum": {
+                "type": "number",
+                "description": "Maximum value for numeric values"
+              },
+              "enum": {
+                "type": "array",
+                "description": "List of allowed values",
+                "items": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "dataLocations": {
+      "type": "array",
+      "description": "Array of data location definitions that represent different types of data with their own organizational structure",
+      "items": {
+        "$ref": "#/definitions/dataLocation"
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "User preferences for the DatasetStructureModel",
+      "required": ["defaultDataLocationIdentifier", "environmentIdentifier"],
+      "properties": {
+        "defaultDataLocationIdentifier": {
+          "type": "string",
+          "description": "Identifier of the default data location"
+        },
+        "environmentIdentifier": {
+          "type": "string",
+          "description": "Identifier of the current computing environment (e.g., 'windows-lab', 'mac-home')"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "dataLocation": {
+      "type": "object",
+      "required": ["displayName", "identifier", "dataCategory", "rootStoragePaths", "pathTemplate", "entityLayout"],
+      "properties": {
+        "identifier": {
+            "type": "string",
+            "description": "Unique identifier for the data location"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name of the data location"
+        },
+        "description": {
+            "type": "string",
+            "description": "Optional detailed description of the data location's purpose"
+        },
+        "dataCategory": {
+          "type": "string",
+          "description": "Category of the data location defining its role in the data lifecycle",
+          "enum": ["raw", "processed", "derived", "imported", "reference", "temporary", "archive", "custom"],
+          "default": "raw"
+        },
+        "rootStoragePaths": {
+          "type": "array",
+          "description": "Array of storage root path configurations for distributed datasets, i.e if data is stored in multiple locations",
+          "items": {
+            "$ref": "#/definitions/rootStoragePath"
+          }
+        },
+        "entityLayout": {
+        "type": "array",
+        "description": "Definition of the physical layout that maps file and folder structure to semantic entities",
+        "items": {
+            "$ref": "#/definitions/entityLayoutLevel"
+            }
+        },
+        "metadata": {
+        "type": "array",
+        "description": "Definitions of metadata fields associated with entities in this data location",
+        "items": {
+            "type": "object",
+            "required": ["metadataRef", "ofEntity", "extraction"],
+            "properties": {
+              "metadataRef": {
+                "type": "string",
+                "description": "Reference to a global metadata definition in metadataDefinitions"
+              },
+              "ofEntity": {
+                "type": "string",
+                "description": "The entity type this metadata belongs to in this data location"
+              },
+              "extraction": {
+                "$ref": "#/definitions/metadataExtraction",
+                "description": "Location-specific extraction rules for this metadata field"
+              }
+            }
+          }
+        },
+        "entityRelationships": {
+          "type": "array",
+          "description": "Defines semantic relationships between entity types in this data location",
+          "items": {
+            "$ref": "#/definitions/entityRelationship"
+          }
+        },
+        "pathTemplate": {
+            "type": "string",
+            "description": "Template path showing the expected structure with placeholders (e.g., '{rootPath}/{subject}/{session}')"
+        },
+        "additionalFolders": {
+          "type": "array",
+          "description": "Optional additional folders within the hierarchy",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Optional tags for categorizing or filtering data locations",
+          "items": {
+            "type": "string"
+          }
+        },
+        "customProperties": {
+          "type": "object",
+          "description": "Optional custom properties for domain-specific extensions"
+        }
+      }
+    },
+    "rootStoragePath": {
+      "type": "object",
+      "required": ["identifier", "path"],
+      "properties": {
+        "identifier": {
+          "type": "string",
+          "description": "Unique identifier for the storage path"
+        },
+        "path": {
+          "type": "string",
+          "description": "Actual file system path"
+        },
+        "volumeName": {
+          "type": "string",
+          "description": "Name of the disk/volume where the path is located"
+        },
+        "storageType": {
+          "type": "string",
+          "description": "Type of storage medium",
+          "enum": ["local", "external", "network", "cloud", "removable", "virtual"],
+          "default": "local"
+        },
+        "environment": {
+          "type": "string",
+          "description": "Computing environment this path is valid for (e.g., 'windows-lab', 'mac-home')"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority order when multiple valid paths exist (lower number = higher priority)",
+          "minimum": 1,
+          "default": 1
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Whether this storage location is currently available",
+          "default": true
+        }
+      }
+    },
+    "entityLayoutLevel": {
+      "type": "object",
+      "required": ["name", "entityType", "matchPattern"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of this hierarchy level (e.g., 'subjects', 'sessions')"
+        },
+        "entityType": {
+          "type": "string",
+          "description": "Type of entity this level represents (e.g., 'subject', 'session', 'recording')",
+          "examples": ["subject", "session", "recording", "experiment", "dataset", "run", "scan"]
+        },
+        "levelType": {
+          "type": "string",
+          "description": "Whether this level is represented by a folder or a file name",
+          "enum": ["folder", "file"],
+          "default": "folder"
+        },
+        "pathComponentTemplate": {
+            "type": "string",
+            "description": "Optional template that defines how this level's name appears in the overall path (useful when filenames encode multiple metadata fields, e.g., '{subjectId}_session{sessionNumber}')."
+        },
+        "matchPattern": {
+          "type": "string",
+          "description": "Regular expression pattern for matching valid entity items at this level"
+        },
+        "excludePatterns": {
+          "type": "array",
+          "description": "Patterns for folders/files to exclude at this level",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Whether this level must exist in the hierarchy",
+          "default": true
+        },
+        "isVariable": {
+          "type": "boolean",
+          "description": "Whether this level can have variable names (true) or has a fixed name (false)",
+          "default": true
+        },
+        "fixedName": {
+          "type": "string",
+          "description": "Fixed folder name if isVariable is false"
+        },
+        "metadataMapping": {
+          "type": "object",
+          "description": "Mapping between folder name patterns and metadata values"
+        },
+        "filePatterns": {
+          "type": "array",
+          "description": "Patterns for matching files at this level",
+          "items": {
+            "$ref": "#/definitions/filePattern"
+          }
+        }
+      }
+    },
+    "filePattern": {
+      "type": "object",
+      "required": ["pattern", "fileType"],
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Regular expression pattern for matching files"
+        },
+        "fileType": {
+          "type": "string",
+          "description": "Type of file (e.g., 'data', 'metadata', 'config')"
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Whether this file must exist",
+          "default": false
+        },
+        "metadataExtractors": {
+          "type": "array",
+          "description": "Metadata extractors specific to this file pattern",
+          "items": {
+            "$ref": "#/definitions/metadataExtraction"
+          }
+        }
+      }
+    },
+    "metadataExtraction": {
+        "type": "object",
+        "description": "Instructions for how to extract or derive the metadata value",
+        "required": ["method"],
+        "properties": {
+            "method": {
+                "type": "string",
+                "enum": ["substring", "regex", "function", "template", "fixed", "filename", "filepath"]
+            },
+            "pattern": {
+                "type": "string"
+            },
+            "valueFormat": {
+                "type": "string"
+            },
+            "extractorFunction": {
+                "type": "string"
+            },
+            "entityLayoutLevel": {
+                "type": ["integer", "null"],
+                "description": "Index of the entity layout level containing this metadata (0-based) (if metadata is extracted from single entity level). "
+            }
+        }
+    },
+    "entityRelationship": {
+      "type": "object",
+      "required": ["sourceEntity", "targetEntity", "relationType"],
+      "properties": {
+        "sourceEntity": {
+          "type": "string",
+          "description": "The source entity type in this relationship"
+        },
+        "targetEntity": {
+          "type": "string",
+          "description": "The target entity type in this relationship"
+        },
+        "relationType": {
+          "type": "string",
+          "enum": ["oneToOne", "oneToMany", "manyToOne", "manyToMany"],
+          "description": "The cardinality of the relationship"
+        },
+        "relationName": {
+          "type": "string",
+          "description": "Optional name for this relationship (e.g., 'contains', 'belongsTo')"
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Whether this relationship must exist",
+          "default": true
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of this relationship"
+        }
+      }
+    }
+  }
+}

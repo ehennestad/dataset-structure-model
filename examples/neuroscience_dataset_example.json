@@ -1,0 +1,291 @@
+{
+  "schemaVersion": "1.0.0",
+  "metadataDefinitions": {
+    "subject_id": {
+      "name": "Subject ID",
+      "dataType": "string",
+      "description": "Unique identifier for research subjects",
+      "validation": {
+        "pattern": "^[A-Za-z0-9]+$",
+        "minLength": 3
+      }
+    },
+    "acquisition_date": {
+      "name": "Acquisition Date",
+      "dataType": "date",
+      "description": "Date when data was acquired"
+    },
+    "session_id": {
+      "name": "Session ID",
+      "dataType": "string",
+      "description": "Identifier for experimental sessions"
+    },
+    "recording_id": {
+      "name": "Recording ID",
+      "dataType": "string",
+      "description": "Identifier for individual recordings within a session"
+    },
+    "imaging_depth": {
+      "name": "Imaging Depth",
+      "dataType": "number",
+      "description": "Depth of imaging in micrometers",
+      "validation": {
+        "minimum": 0,
+        "maximum": 1000
+      }
+    },
+    "frame_rate": {
+      "name": "Frame Rate",
+      "dataType": "number",
+      "description": "Imaging frame rate in Hz"
+    }
+  },
+  "dataLocations": [
+    {
+      "identifier": "two-photon-calcium-imaging",
+      "displayName": "Two-Photon Calcium Imaging",
+      "description": "Raw two-photon calcium imaging recordings from cortical neurons",
+      "dataCategory": "raw",
+      "rootStoragePaths": [
+        {
+          "identifier": "lab-windows-path",
+          "path": "D:\\Data\\TwoPhoton",
+          "volumeName": "DataDrive",
+          "storageType": "local",
+          "environment": "windows-lab",
+          "priority": 1,
+          "isAvailable": true
+        },
+        {
+          "identifier": "analysis-mac-path",
+          "path": "/Volumes/DataDrive/TwoPhoton",
+          "volumeName": "DataDrive",
+          "storageType": "external",
+          "environment": "mac-analysis",
+          "priority": 1,
+          "isAvailable": true
+        }
+      ],
+      "pathTemplate": "{rootPath}/{subject}/{session}/{recording}",
+      "entityLayout": [
+        {
+          "name": "subjects",
+          "entityType": "subject",
+          "matchPattern": "^[A-Za-z0-9]+$",
+          "excludePatterns": ["temp", "test", "backup"],
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "sessions",
+          "entityType": "session",
+          "matchPattern": "^\\d{8}_[A-Za-z0-9]+$",
+          "excludePatterns": [],
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "recordings",
+          "entityType": "recording",
+          "matchPattern": "^[A-Za-z0-9_-]+$",
+          "excludePatterns": ["archive"],
+          "isRequired": true,
+          "isVariable": true,
+          "filePatterns": [
+            {
+              "pattern": ".*\\.tif$",
+              "fileType": "image",
+              "isRequired": true
+            },
+            {
+              "pattern": ".*_metadata\\.json$",
+              "fileType": "metadata",
+              "isRequired": false,
+              "metadataExtractors": [
+                {
+                  "method": "function",
+                  "extractorFunction": "extractImagingParameters"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "metadata": [
+        {
+          "metadataRef": "subject_id",
+          "ofEntity": "subject",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end"
+          }
+        },
+        {
+          "metadataRef": "acquisition_date",
+          "ofEntity": "session",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^(\\d{8})_",
+            "valueFormat": "yyyyMMdd"
+          }
+        },
+        {
+          "metadataRef": "session_id",
+          "ofEntity": "session",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^\\d{8}_(.+)$"
+          }
+        },
+        {
+          "metadataRef": "recording_id",
+          "ofEntity": "recording",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end"
+          }
+        }
+      ],
+      "entityRelationships": [
+        {
+          "sourceEntity": "subject",
+          "targetEntity": "session",
+          "relationType": "oneToMany",
+          "relationName": "hasSessions",
+          "description": "A subject can have multiple recording sessions"
+        },
+        {
+          "sourceEntity": "session",
+          "targetEntity": "recording",
+          "relationType": "oneToMany",
+          "relationName": "hasRecordings",
+          "description": "A session can have multiple recordings"
+        }
+      ],
+      "tags": ["imaging", "two-photon", "calcium", "raw-data"],
+      "customProperties": {
+        "microscope": "Bruker",
+        "imagingDepth": "cortical layer 2/3",
+        "frameRate": 30
+      }
+    },
+    {
+      "identifier": "processed-calcium-imaging",
+      "displayName": "Processed Calcium Imaging",
+      "description": "Motion-corrected and preprocessed calcium imaging data",
+      "dataCategory": "processed",
+      "rootStoragePaths": [
+        {
+          "identifier": "lab-windows-processed",
+          "path": "D:\\Data\\Processed\\TwoPhoton",
+          "volumeName": "DataDrive",
+          "storageType": "local",
+          "environment": "windows-lab",
+          "priority": 1,
+          "isAvailable": true
+        }
+      ],
+      "pathTemplate": "{rootPath}/{subject}/{session}/processed",
+      "entityLayout": [
+        {
+          "name": "subjects",
+          "entityType": "subject",
+          "matchPattern": "^[A-Za-z0-9]+$",
+          "excludePatterns": ["temp", "test", "backup"],
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "sessions",
+          "entityType": "session",
+          "matchPattern": "^\\d{8}_[A-Za-z0-9]+$",
+          "excludePatterns": [],
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "processed",
+          "entityType": "dataType",
+          "matchPattern": "^processed$",
+          "excludePatterns": [],
+          "isRequired": true,
+          "isVariable": false,
+          "fixedName": "processed",
+          "filePatterns": [
+            {
+              "pattern": ".*_motion_corrected\\.tif$",
+              "fileType": "image",
+              "isRequired": true
+            },
+            {
+              "pattern": ".*_roi_masks\\.mat$",
+              "fileType": "data",
+              "isRequired": false
+            },
+            {
+              "pattern": ".*_calcium_traces\\.mat$",
+              "fileType": "data",
+              "isRequired": false
+            }
+          ]
+        }
+      ],
+      "metadata": [
+        {
+          "metadataRef": "subject_id",
+          "ofEntity": "subject",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end"
+          }
+        },
+        {
+          "metadataRef": "acquisition_date",
+          "ofEntity": "session",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^(\\d{8})_",
+            "valueFormat": "yyyyMMdd"
+          }
+        },
+        {
+          "metadataRef": "session_id",
+          "ofEntity": "session",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^\\d{8}_(.+)$"
+          }
+        },
+        {
+          "metadataRef": "frame_rate",
+          "ofEntity": "dataType",
+          "extraction": {
+            "method": "fixed",
+            "pattern": "30"
+          }
+        }
+      ],
+      "entityRelationships": [
+        {
+          "sourceEntity": "subject",
+          "targetEntity": "session",
+          "relationType": "oneToMany",
+          "relationName": "hasSessions",
+          "description": "A subject can have multiple recording sessions"
+        },
+        {
+          "sourceEntity": "session",
+          "targetEntity": "dataType",
+          "relationType": "oneToOne",
+          "relationName": "hasProcessedData",
+          "description": "A session has one processed data folder"
+        }
+      ],
+      "tags": ["imaging", "two-photon", "calcium", "processed-data", "motion-corrected"]
+    }
+  ],
+  "preferences": {
+    "defaultDataLocationIdentifier": "two-photon-calcium-imaging",
+    "environmentIdentifier": "windows-lab"
+  }
+}

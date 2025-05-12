@@ -1,0 +1,17 @@
+Problem:
+- non-standardized, highly heterogeneous data organization
+- highly heterogeneous and non-standardized folder structures
+
+
+Goal:
+- Design a schema and framework for formally describing **how** a dataset is structured
+  - Folder organization and file naming conventions (physical layout on disk)
+  - Logical grouping of files by entities (e.g., subjects, sessions, etc.) (semantic organization)
+  - Rules for extracting metadata from paths (metadata-aware)
+  - Environment-specific storage configurations
+
+
+This will allow tools or pipelines to understand and operate on datasets regardless of how the data is actually laid out on disk.
+In other words, the DatasetStructureModel defines a metadata-aware, declarative abstraction over messy, real-world datasets.
+
+standardized semantic model over arbitrary folder structures.
