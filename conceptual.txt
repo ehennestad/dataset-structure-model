@@ -11,6 +11,21 @@ Goal:
   - Environment-specific storage configurations
 
 
+The main idea is the following:
+We want to describe a dataset that might be located in multiple different locations on a file system. For example, there might be raw (acquired) data in one location and processed data in another (in the simplest case there might only be one data location), but we want to support an arbitrary number of locations.
+
+The dataset will contain data from a scientific experiment, e.g a neuroscience experiment. This experiment will have entities, like subjects, sessions, trials etc. What we want to achieve with this model is to generate entity-tables where each entity table (i.e for subject or session) contains information about metadata for that entity, and information about which resources (i.e files) should be linked to that entity.
+
+There will be some pre-defined entities, but the user should be able to add their own entities. 
+
+Data for one entity (i.e subject or session) might be spread across different data locations. The model should be able to match resources for entities across data locations, and that is why each data location can define metadata mappings. In practice folder organization for raw data could look like this: {date}/{subject}/{session} and for processed it could look like this: {subject}/{session}. Furthermore, the folder names in each data location can follow different naming rules. For example, in the raw data it might look like 2025_05_23_10_00_00_m110-20250510-001 and in the processed it might look like session-m110-20250510-001.
+
+For each data location we want the to add the sessionId metadata field (which is ofEntity session) and define the custom rules for extracting the session id, i.e "m110-20250510-001".
+
+The model should also support outputting data to new data locations, i.e "derived", in which case the entityLevel/pathComponentTemplate will be used for generating a new folder name.
+
+
+
 This will allow tools or pipelines to understand and operate on datasets regardless of how the data is actually laid out on disk.
 In other words, the DatasetStructureModel defines a metadata-aware, declarative abstraction over messy, real-world datasets.
 

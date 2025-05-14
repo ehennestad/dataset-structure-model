@@ -11,29 +11,48 @@
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "default": "1.0.0"
     },
+    "entityTypes": {
+      "type": "array",
+      "description": "Array of entity types that can be used in this dataset structure",
+      "items": {
+        "type": "string",
+        "description": "Type of entity (e.g., 'subject', 'session', 'experiment')"
+      }
+    },
+    "entityRelationships": {
+      "type": "array",
+      "description": "Defines semantic relationships between entity types in this data location",
+      "items": {
+        "$ref": "#/definitions/entityRelationship"
+      }
+    },
     "metadataDefinitions": {
       "type": "object",
       "description": "Global definitions of metadata fields that can be referenced across data locations",
       "additionalProperties": {
         "type": "object",
-        "required": ["name", "dataType"],
+        "required": ["name", "ofEntity", "dataType"],
         "properties": {
-          "$id": {
-            "type": "string",
-            "description": "Optional unique identifier for this metadata definition (for JSON-LD compatibility)"
-          },
           "name": {
             "type": "string",
             "description": "Human-readable name of the metadata field"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what this metadata represents"
           },
           "dataType": {
             "type": "string",
             "enum": ["string", "number", "integer", "date", "time", "datetime", "boolean", "array", "object"],
             "default": "string"
           },
-          "description": {
+          "defaultValue": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Default value for this metadata field"
+          },
+          "ofEntity": {
             "type": "string",
-            "description": "Description of what this metadata represents"
+            "description": "The entity type this metadata belongs to in this data location"
           },
           "validation": {
             "type": "object",
@@ -87,7 +106,7 @@
         },
         "environmentIdentifier": {
           "type": "string",
-          "description": "Identifier of the current computing environment (e.g., 'windows-lab', 'mac-home')"
+          "description": "Identifier of the current computing environment (e.g., 'windows-lab', 'mac-home'). This is used to determine the appropriate storage paths. Root storage paths can be defined for different environments, and the system will select the most appropriate one based on this identifier."
         }
       }
     }
@@ -129,20 +148,16 @@
             "$ref": "#/definitions/entityLayoutLevel"
             }
         },
-        "metadata": {
+        "metadataMapping": {
         "type": "array",
-        "description": "Definitions of metadata fields associated with entities in this data location",
+        "description": "Definitions of metadata fields associated with entities that can be extracted from file or foldernames in this data location",
         "items": {
             "type": "object",
-            "required": ["metadataRef", "ofEntity", "extraction"],
+            "required": ["metadataRef", "extraction"],
             "properties": {
               "metadataRef": {
                 "type": "string",
                 "description": "Reference to a global metadata definition in metadataDefinitions"
-              },
-              "ofEntity": {
-                "type": "string",
-                "description": "The entity type this metadata belongs to in this data location"
               },
               "extraction": {
                 "$ref": "#/definitions/metadataExtraction",
@@ -151,34 +166,16 @@
             }
           }
         },
-        "entityRelationships": {
-          "type": "array",
-          "description": "Defines semantic relationships between entity types in this data location",
-          "items": {
-            "$ref": "#/definitions/entityRelationship"
-          }
-        },
         "pathTemplate": {
             "type": "string",
             "description": "Template path showing the expected structure with placeholders (e.g., '{rootPath}/{subject}/{session}')"
         },
         "additionalFolders": {
           "type": "array",
-          "description": "Optional additional folders within the hierarchy",
+          "description": "List of subfolders that can be created/exist within this node/level of the data location",
           "items": {
             "type": "string"
           }
-        },
-        "tags": {
-          "type": "array",
-          "description": "Optional tags for categorizing or filtering data locations",
-          "items": {
-            "type": "string"
-          }
-        },
-        "customProperties": {
-          "type": "object",
-          "description": "Optional custom properties for domain-specific extensions"
         }
       }
     },
@@ -207,17 +204,6 @@
         "environment": {
           "type": "string",
           "description": "Computing environment this path is valid for (e.g., 'windows-lab', 'mac-home')"
-        },
-        "priority": {
-          "type": "integer",
-          "description": "Priority order when multiple valid paths exist (lower number = higher priority)",
-          "minimum": 1,
-          "default": 1
-        },
-        "isAvailable": {
-          "type": "boolean",
-          "description": "Whether this storage location is currently available",
-          "default": true
         }
       }
     },
@@ -234,7 +220,7 @@
           "description": "Type of entity this level represents (e.g., 'subject', 'session', 'recording')",
           "examples": ["subject", "session", "recording", "experiment", "dataset", "run", "scan"]
         },
-        "levelType": {
+        "fileSystemType": {
           "type": "string",
           "description": "Whether this level is represented by a folder or a file name",
           "enum": ["folder", "file"],
@@ -270,26 +256,22 @@
           "type": "string",
           "description": "Fixed folder name if isVariable is false"
         },
-        "metadataMapping": {
-          "type": "object",
-          "description": "Mapping between folder name patterns and metadata values"
-        },
         "filePatterns": {
           "type": "array",
-          "description": "Patterns for matching files at this level",
+          "description": "Patterns for grouping files at this level, if fileSystemType is 'file'",
           "items": {
-            "$ref": "#/definitions/filePattern"
+            "$ref": "#/definitions/fileGroupingPattern"
           }
         }
       }
     },
-    "filePattern": {
+    "fileGroupingPattern": {
       "type": "object",
       "required": ["pattern", "fileType"],
       "properties": {
         "pattern": {
           "type": "string",
-          "description": "Regular expression pattern for matching files"
+          "description": "Regular expression pattern for groupin files"
         },
         "fileType": {
           "type": "string",
@@ -299,13 +281,6 @@
           "type": "boolean",
           "description": "Whether this file must exist",
           "default": false
-        },
-        "metadataExtractors": {
-          "type": "array",
-          "description": "Metadata extractors specific to this file pattern",
-          "items": {
-            "$ref": "#/definitions/metadataExtraction"
-          }
         }
       }
     },
@@ -328,7 +303,7 @@
                 "type": "string"
             },
             "entityLayoutLevel": {
-                "type": ["integer", "null"],
+                "type": ["integer", "null", "string"],
                 "description": "Index of the entity layout level containing this metadata (0-based) (if metadata is extracted from single entity level). "
             }
         }
