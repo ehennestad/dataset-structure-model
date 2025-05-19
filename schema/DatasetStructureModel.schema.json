@@ -4,6 +4,7 @@
   "description": "A schema for describing the structure of scientific datasets, capturing both their physical layout on disk and their semantic organization.",
   "type": "object",
   "required": ["schemaVersion", "dataLocations", "preferences"],
+  "additionalProperties": false,
   "properties": {
     "schemaVersion": {
       "type": "string",
@@ -13,10 +14,28 @@
     },
     "entityTypes": {
       "type": "array",
-      "description": "Array of entity types that can be used in this dataset structure",
+      "description": "List of semantic entity types present in this dataset",
       "items": {
-        "type": "string",
-        "description": "Type of entity (e.g., 'subject', 'session', 'experiment')"
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the entity type (e.g., 'subject', 'session')"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of what this entity represents"
+          },
+          "color": {
+            "type": "string",
+            "description": "Optional color for UI visualization (e.g., '#FF0000')"
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "description": "Whether this is a primary entity type in the model"
+          }
+        }
       }
     },
     "entityRelationships": {
@@ -28,7 +47,7 @@
     },
     "metadataDefinitions": {
       "type": "object",
-      "description": "Global definitions of metadata fields that can be referenced across data locations",
+      "description": "Global definitions of metadata fields that apply across all data locations. Each field must be uniquely named and associated with a specific entity type. All references to metadata must point to one of these global definitions.",
       "additionalProperties": {
         "type": "object",
         "required": ["name", "ofEntity", "dataType"],
@@ -36,6 +55,10 @@
           "name": {
             "type": "string",
             "description": "Human-readable name of the metadata field"
+          },
+          "title": {
+            "type": "string",
+            "description": "User-facing display name (e.g., 'Subject ID')"
           },
           "description": {
             "type": "string",
@@ -52,7 +75,7 @@
           },
           "ofEntity": {
             "type": "string",
-            "description": "The entity type this metadata belongs to in this data location"
+            "description": "The name of the entity type this metadata belongs to in this data location"
           },
           "validation": {
             "type": "object",
@@ -114,7 +137,8 @@
   "definitions": {
     "dataLocation": {
       "type": "object",
-      "required": ["displayName", "identifier", "dataCategory", "rootStoragePaths", "pathTemplate", "entityLayout"],
+      "required": ["displayName", "identifier", "dataCategory", "rootStoragePaths", "entityLayout"],
+      "additionalProperties": false,
       "properties": {
         "identifier": {
             "type": "string",
@@ -143,15 +167,15 @@
         },
         "entityLayout": {
         "type": "array",
-        "description": "Definition of the physical layout that maps file and folder structure to semantic entities",
+        "description": "Definition of the *physical* layout that maps file and folder structure to semantic entities",
         "items": {
             "$ref": "#/definitions/entityLayoutLevel"
             }
         },
         "metadataMapping": {
-        "type": "array",
-        "description": "Definitions of metadata fields associated with entities that can be extracted from file or foldernames in this data location",
-        "items": {
+          "type": "array",
+          "description": "Defines how metadata fields associated with entities (declared globally in metadataDefinitions) can be extracted from filenames or folder structures in this data location. No new metadata fields should be defined here.",
+            "items": {
             "type": "object",
             "required": ["metadataRef", "extraction"],
             "properties": {
@@ -168,7 +192,8 @@
         },
         "pathTemplate": {
             "type": "string",
-            "description": "Template path showing the expected structure with placeholders (e.g., '{rootPath}/{subject}/{session}')"
+            "description": "Optional template path showing the expected structure with placeholders (e.g., '{rootPath}/{subject}/{session}'). Must match entityLayout if present.",
+            "default": null
         },
         "additionalFolders": {
           "type": "array",
@@ -182,6 +207,7 @@
     "rootStoragePath": {
       "type": "object",
       "required": ["identifier", "path"],
+      "additionalProperties": false,
       "properties": {
         "identifier": {
           "type": "string",
@@ -210,6 +236,7 @@
     "entityLayoutLevel": {
       "type": "object",
       "required": ["name", "entityType", "matchPattern"],
+      "additionalProperties": false,
       "properties": {
         "name": {
           "type": "string",
@@ -271,7 +298,7 @@
       "properties": {
         "pattern": {
           "type": "string",
-          "description": "Regular expression pattern for groupin files"
+          "description": "Regular expression pattern for grouping files"
         },
         "fileType": {
           "type": "string",
@@ -285,31 +312,33 @@
       }
     },
     "metadataExtraction": {
-        "type": "object",
-        "description": "Instructions for how to extract or derive the metadata value",
-        "required": ["method"],
-        "properties": {
-            "method": {
-                "type": "string",
-                "enum": ["substring", "regex", "function", "template", "fixed", "filename", "filepath"]
-            },
-            "pattern": {
-                "type": "string"
-            },
-            "valueFormat": {
-                "type": "string"
-            },
-            "extractorFunction": {
-                "type": "string"
-            },
-            "entityLayoutLevel": {
-                "type": ["integer", "null", "string"],
-                "description": "Index of the entity layout level containing this metadata (0-based) (if metadata is extracted from single entity level). "
-            }
+      "type": "object",
+      "description": "Instructions for how to extract or derive the metadata value",
+      "required": ["method"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["substring", "regex", "function", "template", "fixed", "filename", "filepath"]
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "valueFormat": {
+          "type": "string"
+        },
+        "extractorFunction": {
+          "type": "string"
+        },
+        "entityLayoutLevel": {
+          "type": ["integer", "null", "string"],
+          "description": "Index of the entity layout level containing this metadata (0-based) (if metadata is extracted from single entity level). "
         }
+      }
     },
     "entityRelationship": {
       "type": "object",
+      "description": "Defines *semantic* relationships between entity types in this dataset, independent of physical storage",
       "required": ["sourceEntity", "targetEntity", "relationType"],
       "properties": {
         "sourceEntity": {
