@@ -106,7 +106,7 @@ Key properties of a data location:
 
 ### Entity Layout
 
-The `entityLayout` array defines the hierarchical structure of folders and files that make up the data location.
+The `entityLayout` array defines the hierarchical structure of folders and files that make up the data location. **Each level should specify an `entityType`, which describes the semantic type of entity (such as `subject`, `session`, or `recording`) that the folder or file at that level represents.** 
 
 ```json
 "entityLayout": [
@@ -130,13 +130,32 @@ The `entityLayout` array defines the hierarchical structure of folders and files
 ```
 
 Each level in the entity layout includes:
-- `name`: Name of the level
-- `entityType`: Type of entity this level represents
-- `matchPattern`: Regular expression for matching valid folders/files
+- `name`: Name of the level (for documentation/readability)
+- `entityType`: **Semantic type of entity this level represents (e.g., 'subject', 'session', 'recording').** This field is required and is used for mapping between the folder structure and the dataset's semantic organization.
+- `matchPattern`: Regular expression for matching valid folders/files at this level
 - `excludePatterns`: Patterns for items to exclude
 - `isRequired`: Whether this level must exist
-- `isVariable`: Whether this level can have variable names
+- `isVariable`: Whether this level can have variable names (vs. a fixed name)
 - `filePatterns`: Patterns for matching files at this level
+
+#### Handling ambiguous or miscellaneous levels
+
+If a level does not correspond to a clearly defined entity, or represents miscellaneous content, **you may use `"other"` as the `entityType`**.  
+When using `"other"`, make sure the `name` field at that level clearly indicates its purpose (for example: `"auxiliary_files"`, `"unstructured"`, or `"legacy_data"`). This ensures each `"other"` is uniquely identified and understandable, even if multiple `"other"` levels exist in a dataset.
+
+```json
+"entityLayout": [
+  {
+    "name": "auxiliary_files",
+    "entityType": "other",
+    "matchPattern": ".*",
+    "isRequired": false,
+    "isVariable": false
+  }
+]
+```
+
+> **Note:** The `entityType` field allows tools to construct data tables (such as subject or session tables) from arbitrary folder structures, by relating physical structure to semantic entities.
 
 ### Entity Relationships
 
@@ -207,18 +226,11 @@ See the `examples/` directory for complete example configurations:
 
 ## Best Practices
 
-1. **Use Consistent Entity Types**: Use the same entity type names across different data locations when they represent the same concept.
-
+1. **Use Consistent Entity Types**: Use the same entity type names across different data locations when they represent the same concept. The `entityType` field in `entityLayout` is central to mapping physical structure to semantic meaning.
 2. **Define Global Metadata**: Define metadata fields globally in `metadataDefinitions` and reference them in data locations, rather than defining them separately in each location.
-
 3. **Use Descriptive Identifiers**: Choose clear, descriptive identifiers for data locations, metadata fields, and other components.
-
 4. **Document Relationships**: Define entity relationships explicitly to capture the semantic structure of your data.
-
 5. **Validate Metadata**: Use validation rules in metadata definitions to ensure data quality.
-
 6. **Use Regular Expressions Carefully**: Write precise regular expressions for `matchPattern` to avoid matching unwanted items.
-
 7. **Include Documentation**: Use the `description` field liberally throughout your configuration to document the purpose of each component.
-
 8. **Consider Multiple Environments**: Define `rootStoragePaths` for all relevant computing environments to ensure portability.
