@@ -56,12 +56,14 @@ The `metadataDefinitions` section defines metadata fields that can be referenced
     "validation": {
       "pattern": "^[A-Za-z0-9]+$",
       "minLength": 3
-    }
+    },
+    "ofEntity": "subject"
   },
   "acquisition_date": {
     "name": "Acquisition Date",
     "dataType": "date",
-    "description": "Date when data was acquired"
+    "description": "Date when data was acquired",
+    "ofEntity": "session"
   }
 }
 ```
@@ -72,6 +74,7 @@ Each metadata definition includes:
 - The data type
 - An optional description
 - Optional validation rules
+- `ofEntity`: The entity type this metadata is associated with
 
 ### Data Locations
 
@@ -87,7 +90,7 @@ The `dataLocations` array contains definitions for different types of data, each
     "rootStoragePaths": [ ... ],
     "pathTemplate": "{rootPath}/{subject}/{session}/{recording}",
     "entityLayout": [ ... ],
-    "metadata": [ ... ],
+    "metadataMapping": [ ... ],
     "entityRelationships": [ ... ],
     "tags": ["imaging", "two-photon", "calcium"]
   }
@@ -101,7 +104,7 @@ Key properties of a data location:
 - `rootStoragePaths`: Physical storage locations
 - `pathTemplate`: Template showing the expected structure
 - `entityLayout`: Definition of the folder/file structure
-- `metadata`: Metadata fields associated with entities
+- `metadataMapping`: Extraction rules for metadata fields associated with entities (see below)
 - `entityRelationships`: Relationships between entity types
 
 ### Entity Layout
@@ -189,13 +192,12 @@ Each relationship includes:
 
 ### Metadata References
 
-The `metadata` array in a data location references global metadata definitions while specifying location-specific extraction rules.
+The `metadataMapping` array in a data location references global metadata definitions while specifying location-specific extraction rules.
 
 ```json
-"metadata": [
+"metadataMapping": [
   {
     "metadataRef": "subject_id",
-    "ofEntity": "subject",
     "extraction": {
       "method": "substring",
       "pattern": "0:end"
@@ -203,7 +205,6 @@ The `metadata` array in a data location references global metadata definitions w
   },
   {
     "metadataRef": "acquisition_date",
-    "ofEntity": "session",
     "extraction": {
       "method": "regex",
       "pattern": "^(\\d{8})_",
@@ -213,10 +214,11 @@ The `metadata` array in a data location references global metadata definitions w
 ]
 ```
 
-Each metadata reference includes:
-- `metadataRef`: Reference to a global metadata definition
-- `ofEntity`: The entity type this metadata belongs to
-- `extraction`: Location-specific extraction rules
+Each metadata mapping includes:
+- `metadataRef`: Reference to a global metadata definition in `metadataDefinitions`
+- `extraction`: Location-specific extraction rules for this metadata field
+
+> **Note:** The `ofEntity` property is defined globally in the `metadataDefinitions` block, not repeated in `metadataMapping`.
 
 ## Example Configurations
 
