@@ -107,6 +107,33 @@ Key properties of a data location:
 - `metadataMapping`: Extraction rules for metadata fields associated with entities (see below)
 - `entityRelationships`: Relationships between entity types
 
+#### FAQ: Why is `dataCategory` a property of each `dataLocation`?
+
+**Q:** *Why does each `dataLocation` have a `dataCategory`? Shouldn’t the category be global, or belong to the data itself?*
+
+**A:**  
+The `dataCategory` property is defined on each `dataLocation` because a single dataset often contains multiple types of data, each with a different role in the research lifecycle. For example, you might have:
+
+- Two separate locations for raw (acquired) data—perhaps from different acquisition systems or stored on different drives.
+- A third location containing processed or derived data, generated after running analysis pipelines.
+
+Each of these storage locations is described as a separate `dataLocation` in the model, and the `dataCategory` (e.g., `"raw"`, `"processed"`, `"derived"`) signals the role that the data in that location plays. This design supports:
+
+- **Multiple locations with the same category:** You can have several `dataLocations` with `dataCategory: "raw"` if you acquire raw data on different systems.
+- **Clear mapping of role to storage:** The `dataCategory` tells tools and users how to handle data from that particular location (e.g., raw data might be read-only, processed data might be subject to updates).
+- **Flexible, explicit data lifecycle tracking:** It’s possible to describe a complete flow of data from raw acquisition through processing to derived results, with each step stored in a different place.
+
+This approach allows the schema to clearly represent real-world scenarios where data is split across multiple locations, and the *role* of the data is determined by its location and context—not just by its content.
+
+**Example:**
+- After an experiment, you might have:
+    - Raw data from System A on External Drive A (`dataLocation` 1, `dataCategory: "raw"`)
+    - Raw data from System B on External Drive B (`dataLocation` 2, `dataCategory: "raw"`)
+    - Processed data in a Dropbox folder (`dataLocation` 3, `dataCategory: "processed"`)
+  All three refer to the same experimental entities (subjects, sessions), but are tracked separately.
+
+For details about the available categories and their recommended usage, see [Data Location Categories](data_location_categories.md).
+
 ### Entity Layout
 
 The `entityLayout` array defines the hierarchical structure of folders and files that make up the data location. **Each level should specify an `entityType`, which describes the semantic type of entity (such as `subject`, `session`, or `recording`) that the folder or file at that level represents.** 
