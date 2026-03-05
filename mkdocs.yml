@@ -1,0 +1,79 @@
+site_name: Dataset Structure Model
+site_description: A JSON Schema standard for declaratively describing the structure of scientific datasets
+repo_url: https://github.com/ehennestad/dataset-structure-model
+repo_name: ehennestad/dataset-structure-model
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Quick Start: getting-started/quickstart.md
+      - Core Concepts: getting-started/concepts.md
+  - Schema Reference:
+      - reference/index.md
+      - Top-Level Structure: reference/overview.md
+      - dataLocations: reference/data-locations.md
+      - entityLayout: reference/entity-layout.md
+      - metadataDefinitions: reference/metadata-definitions.md
+      - entityRelationships: reference/entity-relationships.md
+      - preferences: reference/preferences.md
+  - Guides:
+      - guides/index.md
+      - Usage Guide: guides/usage-guide.md
+      - Data Location Categories: guides/data-location-categories.md
+      - Design Decisions: guides/design-decisions.md
+      - For AI Agents: guides/ai-agent-instructions.md
+      - Pipeline Integration: guides/pipeline-integration.md
+  - Examples:
+      - examples/index.md
+      - Neuroscience Dataset: examples/neuroscience.md
+      - Clinical Trial: examples/clinical-trial.md
+  - API:
+      - api/index.md
+      - Python: api/python.md
+      - MATLAB: api/matlab.md
+  - Contributing:
+      - contributing/index.md
+      - Development Guide: contributing/development.md
+      - Changelog: contributing/changelog.md

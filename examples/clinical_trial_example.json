@@ -1,0 +1,379 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    {
+      "name": "site",
+      "description": "Clinical trial site (hospital or research centre)",
+      "isPrimary": false,
+      "identifierRef": "site_id"
+    },
+    {
+      "name": "participant",
+      "description": "A trial participant (patient or healthy control)",
+      "isPrimary": true,
+      "identifierRef": "participant_id"
+    },
+    {
+      "name": "visit",
+      "description": "A scheduled clinical visit at which assessments are performed",
+      "identifierRef": "visit_id"
+    },
+    {
+      "name": "assessment",
+      "description": "An individual measurement or test performed during a visit",
+      "identifierRef": "assessment_id"
+    }
+  ],
+  "entityRelationships": [
+    {
+      "sourceEntity": "site",
+      "targetEntity": "participant",
+      "relationType": "oneToMany",
+      "relationName": "enrolls",
+      "description": "Each site enrolls multiple participants"
+    },
+    {
+      "sourceEntity": "participant",
+      "targetEntity": "visit",
+      "relationType": "oneToMany",
+      "relationName": "hasVisits",
+      "description": "Each participant attends multiple scheduled visits"
+    },
+    {
+      "sourceEntity": "visit",
+      "targetEntity": "assessment",
+      "relationType": "oneToMany",
+      "relationName": "includes",
+      "description": "Each visit includes one or more assessments (e.g., MRI, cognitive battery, blood draw)"
+    },
+    {
+      "sourceEntity": "site",
+      "targetEntity": "participant",
+      "relationType": "manyToMany",
+      "relationName": "transferredTo",
+      "isRequired": false,
+      "description": "Participants may transfer between sites during the trial"
+    }
+  ],
+  "metadataDefinitions": {
+    "site_id": {
+      "name": "Site ID",
+      "ofEntity": "site",
+      "dataType": "string",
+      "description": "Unique identifier for the trial site (e.g., 'SITE001')",
+      "validation": {
+        "pattern": "^SITE\\d{3}$"
+      }
+    },
+    "participant_id": {
+      "name": "Participant ID",
+      "ofEntity": "participant",
+      "dataType": "string",
+      "description": "Pseudonymised participant identifier (e.g., 'P001')",
+      "validation": {
+        "pattern": "^P\\d{3}$"
+      }
+    },
+    "visit_id": {
+      "name": "Visit ID",
+      "ofEntity": "visit",
+      "dataType": "string",
+      "description": "Visit identifier, typically encoding the visit number or timepoint (e.g., 'V01', 'V02', 'baseline', 'followup-12m')"
+    },
+    "visit_date": {
+      "name": "Visit Date",
+      "ofEntity": "visit",
+      "dataType": "date",
+      "description": "Date the visit took place"
+    },
+    "assessment_id": {
+      "name": "Assessment ID",
+      "ofEntity": "assessment",
+      "dataType": "string",
+      "description": "Type and instance identifier for the assessment (e.g., 'MRI-T1', 'MMSE', 'blood-draw')"
+    },
+    "arm": {
+      "name": "Trial Arm",
+      "ofEntity": "participant",
+      "dataType": "string",
+      "description": "Treatment arm the participant is assigned to",
+      "validation": {
+        "enum": ["treatment", "placebo", "control"]
+      }
+    },
+    "age_at_baseline": {
+      "name": "Age at Baseline",
+      "ofEntity": "participant",
+      "dataType": "integer",
+      "unit": "years",
+      "description": "Participant age at the baseline visit",
+      "validation": {
+        "minimum": 18,
+        "maximum": 100
+      }
+    }
+  },
+  "dataLocations": [
+    {
+      "identifier": "clinical-raw-data",
+      "displayName": "Clinical Raw Data",
+      "description": "Primary collected data: imaging, cognitive assessments, and biological samples. Organised by site, participant, and visit.",
+      "dataCategory": "raw",
+      "tags": ["clinical", "multi-site", "longitudinal", "raw"],
+      "rootStoragePaths": [
+        {
+          "identifier": "server-path",
+          "path": "/mnt/trial-data/raw",
+          "storageType": "network",
+          "environment": "analysis-server",
+          "priority": 1,
+          "isAvailable": true
+        },
+        {
+          "identifier": "local-path",
+          "path": "C:\\TrialData\\Raw",
+          "storageType": "local",
+          "environment": "windows-site-workstation",
+          "priority": 1,
+          "isAvailable": true
+        }
+      ],
+      "pathTemplate": "{rootPath}/{site}/{participant}/{visit}/{assessment}",
+      "entityLayout": [
+        {
+          "name": "sites",
+          "entityType": "site",
+          "matchPattern": "^SITE\\d{3}$",
+          "excludePatterns": ["temp", "archive"],
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "participants",
+          "entityType": "participant",
+          "matchPattern": "^P\\d{3}$",
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "visits",
+          "entityType": "visit",
+          "matchPattern": "^V\\d{2}$",
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "assessments",
+          "entityType": "assessment",
+          "matchPattern": "^[A-Za-z0-9_-]+$",
+          "isRequired": true,
+          "isVariable": true,
+          "filePatterns": [
+            {
+              "pattern": ".*\\.nii\\.gz$",
+              "role": "primary",
+              "format": "application/x-nifti",
+              "description": "NIfTI neuroimaging file (structural or functional MRI)",
+              "isRequired": false,
+              "groupKey": "nifti-pair"
+            },
+            {
+              "pattern": ".*\\.json$",
+              "role": "sidecar",
+              "format": "application/json",
+              "description": "BIDS-compatible JSON sidecar with acquisition parameters",
+              "isRequired": false,
+              "groupKey": "nifti-pair"
+            },
+            {
+              "pattern": ".*_scores\\.csv$",
+              "role": "primary",
+              "format": "text/csv",
+              "description": "Cognitive or clinical assessment scores (e.g., MMSE, MOCA)",
+              "isRequired": false
+            },
+            {
+              "pattern": ".*_report\\.pdf$",
+              "role": "qc",
+              "format": "application/pdf",
+              "description": "Quality control or assessment report",
+              "isRequired": false
+            }
+          ]
+        }
+      ],
+      "metadataMapping": [
+        {
+          "metadataRef": "site_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 0
+          }
+        },
+        {
+          "metadataRef": "participant_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 1
+          }
+        },
+        {
+          "metadataRef": "visit_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 2
+          }
+        },
+        {
+          "metadataRef": "assessment_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 3
+          }
+        }
+      ]
+    },
+    {
+      "identifier": "reference-normative-data",
+      "displayName": "Normative Reference Data",
+      "description": "External normative datasets imported for comparison (e.g., healthy population cognitive norms, age-matched imaging atlases). Read-only; not produced by this trial.",
+      "dataCategory": "imported",
+      "tags": ["reference", "normative", "external"],
+      "customProperties": {
+        "source": "published",
+        "accessMode": "read-only"
+      },
+      "rootStoragePaths": [
+        {
+          "identifier": "reference-server",
+          "path": "/mnt/trial-data/reference",
+          "storageType": "network",
+          "environment": "analysis-server",
+          "priority": 1,
+          "isAvailable": true
+        }
+      ],
+      "entityLayout": [
+        {
+          "name": "datasets",
+          "entityType": "assessment",
+          "matchPattern": "^[A-Za-z0-9_-]+$",
+          "isRequired": true,
+          "isVariable": true,
+          "filePatterns": [
+            {
+              "pattern": ".*\\.csv$",
+              "role": "primary",
+              "format": "text/csv",
+              "description": "Normative scores or atlas values",
+              "isRequired": true
+            },
+            {
+              "pattern": ".*_metadata\\.json$",
+              "role": "sidecar",
+              "format": "application/json",
+              "description": "Provenance and citation information for the normative dataset",
+              "isRequired": false
+            }
+          ]
+        }
+      ],
+      "metadataMapping": [
+        {
+          "metadataRef": "assessment_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 0
+          }
+        }
+      ]
+    },
+    {
+      "identifier": "derived-analysis-results",
+      "displayName": "Derived Analysis Results",
+      "description": "Statistical analyses and derived measures computed from the raw clinical data. Organised by participant and visit to mirror the source structure.",
+      "dataCategory": "derived",
+      "derivedFrom": ["clinical-raw-data", "reference-normative-data"],
+      "tags": ["derived", "analysis", "statistics"],
+      "rootStoragePaths": [
+        {
+          "identifier": "derived-server",
+          "path": "/mnt/trial-data/derived",
+          "storageType": "network",
+          "environment": "analysis-server",
+          "priority": 1,
+          "isAvailable": true
+        }
+      ],
+      "pathTemplate": "{rootPath}/{participant}/{visit}",
+      "entityLayout": [
+        {
+          "name": "participants",
+          "entityType": "participant",
+          "pathComponentTemplate": "{participant_id}",
+          "matchPattern": "^P\\d{3}$",
+          "isRequired": true,
+          "isVariable": true
+        },
+        {
+          "name": "visits",
+          "entityType": "visit",
+          "pathComponentTemplate": "{visit_id}",
+          "matchPattern": "^V\\d{2}$",
+          "isRequired": true,
+          "isVariable": true,
+          "filePatterns": [
+            {
+              "pattern": ".*_derived_scores\\.csv$",
+              "role": "primary",
+              "format": "text/csv",
+              "description": "Normalised and derived cognitive/clinical scores relative to the normative reference",
+              "isRequired": false
+            },
+            {
+              "pattern": ".*_imaging_features\\.csv$",
+              "role": "primary",
+              "format": "text/csv",
+              "description": "Extracted imaging-derived phenotypes (e.g., cortical thickness, lesion volume)",
+              "isRequired": false
+            },
+            {
+              "pattern": ".*_analysis_log\\.txt$",
+              "role": "log",
+              "format": "text/plain",
+              "description": "Processing log recording pipeline version, parameters, and warnings",
+              "isRequired": false
+            }
+          ]
+        }
+      ],
+      "metadataMapping": [
+        {
+          "metadataRef": "participant_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 0
+          }
+        },
+        {
+          "metadataRef": "visit_id",
+          "extraction": {
+            "method": "substring",
+            "pattern": "0:end",
+            "entityLayoutLevel": 1
+          }
+        }
+      ]
+    }
+  ],
+  "preferences": {
+    "defaultDataLocationIdentifier": "clinical-raw-data",
+    "environmentIdentifier": "analysis-server"
+  }
+}

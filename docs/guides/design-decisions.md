@@ -23,6 +23,7 @@ Each `dataLocation` has its own `dataCategory` (raw, processed, derived, etc.). 
 Metadata fields (e.g., `session_id`, `subject_id`) are defined once globally in `metadataDefinitions`. Each `dataLocation` then declares, in `metadataMapping`, how to *extract* those fields from its specific folder or file naming convention.
 
 This separation ensures that:
+
 1. Metadata field names are consistent across locations (no aliasing)
 2. The same field can be extracted differently in each location (different regex, different level)
 3. Cross-location entity matching (via `identifierRef`) operates on a shared vocabulary
@@ -34,6 +35,7 @@ This separation ensures that:
 To match entities across data locations (e.g., the same session in raw and processed data), the `identifierRef` field on `entityType` declares which metadata field serves as the canonical identity key. This applies globally to all locations — any two locations that both extract the same value for `session_id` for a `session` entity are considered to refer to the same session.
 
 This design was chosen over pairwise `sourceLocation`/`targetLocation` declarations because:
+
 - It scales to N locations without O(N²) declarations
 - Adding a new location that extracts `session_id` is automatically linkable
 - The identity key is a property of what the entity *is*, not of any particular pair of locations
@@ -45,6 +47,7 @@ The hierarchical context is implicit: a session is identified by (its own `ident
 ## `pathComponentTemplate` serves double duty: documentation and path generation
 
 `pathComponentTemplate` on `entityLayoutLevel` (e.g., `"session-{session_id}"`) serves two purposes:
+
 1. **Documentation**: makes the naming convention human-readable at a glance
 2. **Generation**: for derived data locations, tools substitute source entity metadata values into the template to construct new output folder names
 

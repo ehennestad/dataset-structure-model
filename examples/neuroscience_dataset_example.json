@@ -1,8 +1,43 @@
 {
   "schemaVersion": "1.0.0",
+  "entityTypes": [
+    {
+      "name": "subject",
+      "description": "A research subject (mouse)",
+      "isPrimary": true,
+      "identifierRef": "subject_id"
+    },
+    {
+      "name": "session",
+      "description": "A single experimental recording session",
+      "identifierRef": "session_id"
+    },
+    {
+      "name": "recording",
+      "description": "An individual imaging recording within a session",
+      "identifierRef": "recording_id"
+    }
+  ],
+  "entityRelationships": [
+    {
+      "sourceEntity": "subject",
+      "targetEntity": "session",
+      "relationType": "oneToMany",
+      "relationName": "hasSessions",
+      "description": "A subject can have multiple recording sessions"
+    },
+    {
+      "sourceEntity": "session",
+      "targetEntity": "recording",
+      "relationType": "oneToMany",
+      "relationName": "hasRecordings",
+      "description": "A session can have multiple recordings"
+    }
+  ],
   "metadataDefinitions": {
     "subject_id": {
       "name": "Subject ID",
+      "ofEntity": "subject",
       "dataType": "string",
       "description": "Unique identifier for research subjects",
       "validation": {
@@ -12,23 +47,28 @@
     },
     "acquisition_date": {
       "name": "Acquisition Date",
+      "ofEntity": "session",
       "dataType": "date",
-      "description": "Date when data was acquired"
+      "description": "Date when the session data was acquired"
     },
     "session_id": {
       "name": "Session ID",
+      "ofEntity": "session",
       "dataType": "string",
-      "description": "Identifier for experimental sessions"
+      "description": "Unique identifier for experimental sessions"
     },
     "recording_id": {
       "name": "Recording ID",
+      "ofEntity": "recording",
       "dataType": "string",
       "description": "Identifier for individual recordings within a session"
     },
     "imaging_depth": {
       "name": "Imaging Depth",
+      "ofEntity": "recording",
       "dataType": "number",
-      "description": "Depth of imaging in micrometers",
+      "unit": "µm",
+      "description": "Depth of two-photon imaging plane below the cortical surface",
       "validation": {
         "minimum": 0,
         "maximum": 1000
@@ -36,8 +76,10 @@
     },
     "frame_rate": {
       "name": "Frame Rate",
+      "ofEntity": "recording",
       "dataType": "number",
-      "description": "Imaging frame rate in Hz"
+      "unit": "Hz",
+      "description": "Imaging frame rate"
     }
   },
   "dataLocations": [
@@ -46,6 +88,11 @@
       "displayName": "Two-Photon Calcium Imaging",
       "description": "Raw two-photon calcium imaging recordings from cortical neurons",
       "dataCategory": "raw",
+      "tags": ["imaging", "two-photon", "calcium", "raw-data"],
+      "customProperties": {
+        "microscope": "Bruker",
+        "imagingRegion": "cortical layer 2/3"
+      },
       "rootStoragePaths": [
         {
           "identifier": "lab-windows-path",
@@ -80,7 +127,6 @@
           "name": "sessions",
           "entityType": "session",
           "matchPattern": "^\\d{8}_[A-Za-z0-9]+$",
-          "excludePatterns": [],
           "isRequired": true,
           "isVariable": true
         },
@@ -94,13 +140,19 @@
           "filePatterns": [
             {
               "pattern": ".*\\.tif$",
-              "fileType": "image",
-              "isRequired": true
+              "role": "primary",
+              "format": "image/tiff",
+              "description": "Raw calcium imaging frames, 16-bit single-channel",
+              "isRequired": true,
+              "groupKey": "imaging-data"
             },
             {
               "pattern": ".*_metadata\\.json$",
-              "fileType": "metadata",
+              "role": "sidecar",
+              "format": "application/json",
+              "description": "Acquisition parameters: frame rate, imaging depth, laser power, PMT settings",
               "isRequired": false,
+              "groupKey": "imaging-data",
               "metadataExtractors": [
                 {
                   "method": "function",
@@ -111,69 +163,49 @@
           ]
         }
       ],
-      "metadata": [
+      "metadataMapping": [
         {
           "metadataRef": "subject_id",
-          "ofEntity": "subject",
           "extraction": {
             "method": "substring",
-            "pattern": "0:end"
+            "pattern": "0:end",
+            "entityLayoutLevel": 0
           }
         },
         {
           "metadataRef": "acquisition_date",
-          "ofEntity": "session",
           "extraction": {
             "method": "regex",
             "pattern": "^(\\d{8})_",
-            "valueFormat": "yyyyMMdd"
+            "valueFormat": "yyyyMMdd",
+            "entityLayoutLevel": 1
           }
         },
         {
           "metadataRef": "session_id",
-          "ofEntity": "session",
           "extraction": {
             "method": "regex",
-            "pattern": "^\\d{8}_(.+)$"
+            "pattern": "^\\d{8}_(.+)$",
+            "entityLayoutLevel": 1
           }
         },
         {
           "metadataRef": "recording_id",
-          "ofEntity": "recording",
           "extraction": {
             "method": "substring",
-            "pattern": "0:end"
+            "pattern": "0:end",
+            "entityLayoutLevel": 2
           }
         }
-      ],
-      "entityRelationships": [
-        {
-          "sourceEntity": "subject",
-          "targetEntity": "session",
-          "relationType": "oneToMany",
-          "relationName": "hasSessions",
-          "description": "A subject can have multiple recording sessions"
-        },
-        {
-          "sourceEntity": "session",
-          "targetEntity": "recording",
-          "relationType": "oneToMany",
-          "relationName": "hasRecordings",
-          "description": "A session can have multiple recordings"
-        }
-      ],
-      "tags": ["imaging", "two-photon", "calcium", "raw-data"],
-      "customProperties": {
-        "microscope": "Bruker",
-        "imagingDepth": "cortical layer 2/3",
-        "frameRate": 30
-      }
+      ]
     },
     {
       "identifier": "processed-calcium-imaging",
       "displayName": "Processed Calcium Imaging",
       "description": "Motion-corrected and preprocessed calcium imaging data",
       "dataCategory": "processed",
+      "derivedFrom": ["two-photon-calcium-imaging"],
+      "tags": ["imaging", "two-photon", "calcium", "motion-corrected"],
       "rootStoragePaths": [
         {
           "identifier": "lab-windows-processed",
@@ -199,89 +231,68 @@
           "name": "sessions",
           "entityType": "session",
           "matchPattern": "^\\d{8}_[A-Za-z0-9]+$",
-          "excludePatterns": [],
           "isRequired": true,
           "isVariable": true
         },
         {
           "name": "processed",
-          "entityType": "dataType",
+          "entityType": "recording",
           "matchPattern": "^processed$",
-          "excludePatterns": [],
           "isRequired": true,
           "isVariable": false,
           "fixedName": "processed",
           "filePatterns": [
             {
               "pattern": ".*_motion_corrected\\.tif$",
-              "fileType": "image",
+              "role": "primary",
+              "format": "image/tiff",
+              "description": "Motion-corrected calcium imaging frames",
               "isRequired": true
             },
             {
               "pattern": ".*_roi_masks\\.mat$",
-              "fileType": "data",
+              "role": "auxiliary",
+              "format": "application/x-matlab-data",
+              "description": "ROI segmentation masks from Suite2p or similar",
               "isRequired": false
             },
             {
               "pattern": ".*_calcium_traces\\.mat$",
-              "fileType": "data",
+              "role": "auxiliary",
+              "format": "application/x-matlab-data",
+              "description": "Extracted dF/F calcium traces per ROI",
               "isRequired": false
             }
           ]
         }
       ],
-      "metadata": [
+      "metadataMapping": [
         {
           "metadataRef": "subject_id",
-          "ofEntity": "subject",
           "extraction": {
             "method": "substring",
-            "pattern": "0:end"
+            "pattern": "0:end",
+            "entityLayoutLevel": 0
           }
         },
         {
           "metadataRef": "acquisition_date",
-          "ofEntity": "session",
           "extraction": {
             "method": "regex",
             "pattern": "^(\\d{8})_",
-            "valueFormat": "yyyyMMdd"
+            "valueFormat": "yyyyMMdd",
+            "entityLayoutLevel": 1
           }
         },
         {
           "metadataRef": "session_id",
-          "ofEntity": "session",
           "extraction": {
             "method": "regex",
-            "pattern": "^\\d{8}_(.+)$"
-          }
-        },
-        {
-          "metadataRef": "frame_rate",
-          "ofEntity": "dataType",
-          "extraction": {
-            "method": "fixed",
-            "pattern": "30"
+            "pattern": "^\\d{8}_(.+)$",
+            "entityLayoutLevel": 1
           }
         }
-      ],
-      "entityRelationships": [
-        {
-          "sourceEntity": "subject",
-          "targetEntity": "session",
-          "relationType": "oneToMany",
-          "relationName": "hasSessions",
-          "description": "A subject can have multiple recording sessions"
-        },
-        {
-          "sourceEntity": "session",
-          "targetEntity": "dataType",
-          "relationType": "oneToOne",
-          "relationName": "hasProcessedData",
-          "description": "A session has one processed data folder"
-        }
-      ],
-      "tags": ["imaging", "two-photon", "calcium", "processed-data", "motion-corrected"]
+      ]
     }
   ],
   "preferences": {
