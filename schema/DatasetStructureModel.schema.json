@@ -331,51 +331,27 @@
         },
         "filePatterns": {
           "type": "array",
-          "description": "Descriptions of the classes of files associated with entities at this level. Each entry describes one class of file (its role, format, and how to identify it).",
+          "description": "Patterns for grouping files at this level, if fileSystemType is 'file'. Sometimes, files of multiple entities are present within one folder, and this property is used to group such files by their respective entity.",
           "items": {
-            "$ref": "#/definitions/fileClass"
+            "$ref": "#/definitions/fileGroupingPattern"
           }
         }
       }
     },
-    "fileClass": {
+    "fileGroupingPattern": {
       "type": "object",
-      "description": "Describes a class of files associated with an entity at a given hierarchy level. Each fileClass entry represents one type of file that may be present, characterised by its filename pattern, role, and format.",
-      "required": ["pattern", "role"],
+      "description": "Describes a grouping pattern for files associated with an entity at a given hierarchy level",
+      "required": ["pattern", "fileType"],
       "additionalProperties": false,
       "properties": {
         "pattern": {
           "type": "string",
-          "description": "Regular expression pattern matched against file names at this level (e.g., '.*\\.tif$', '.*_metadata\\.json$')"
-        },
-        "role": {
-          "type": "string",
-          "description": "The role this file class plays relative to its entity",
-          "enum": ["primary", "sidecar", "qc", "log", "config", "auxiliary"]
-        },
-        "format": {
-          "type": "string",
-          "description": "MIME type or well-known format name describing the file format (e.g., 'image/tiff', 'application/x-matlab-data', 'application/x-nwb', 'text/csv'). Used by tools and LLMs to determine how to read the file."
-        },
-        "description": {
-          "type": "string",
-          "description": "Human and LLM readable description of what this file contains (e.g., 'Raw fluorescence frames, 16-bit single-channel, dimensions Z×Y×X×T')"
+          "description": "Regular expression pattern for capturing groups of files (e.g., '.*\\.tif$', '.*_metadata\\.json$')"
         },
         "isRequired": {
           "type": "boolean",
           "description": "Whether a file matching this pattern must exist for the entity to be considered complete",
           "default": false
-        },
-        "groupKey": {
-          "type": "string",
-          "description": "Optional grouping key. Files at the same entity level sharing a groupKey are expected to co-occur and together constitute a complete file group. If any member of the group is missing, the entity is considered incomplete. Use this to model formats where data is split across multiple files (e.g., Open Ephys .dat + .dat.meta + .dat.nrs; BIDS .nii.gz + .json)."
-        },
-        "metadataExtractors": {
-          "type": "array",
-          "description": "Extraction rules applied to the *content* of the matched file (sidecar extraction). Each entry defines how to extract one metadata value from within the file. Typically used with role 'sidecar' or 'config'.",
-          "items": {
-            "$ref": "#/definitions/metadataExtraction"
-          }
         }
       }
     },
