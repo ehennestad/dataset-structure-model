@@ -1,6 +1,6 @@
 # dataLocations
 
-`dataLocations` is a required array of data location objects. Each entry describes one folder tree — typically corresponding to one category of data (raw, processed, derived, etc.).
+`dataLocations` is a required array of data location objects. Each entry describes one logical collection of data — typically corresponding to one category of data (raw, processed, derived, etc.).
 
 `additionalProperties` is `false` on the `dataLocation` object.
 
@@ -50,13 +50,44 @@ The role of this location in the data lifecycle. See [Data Location Categories](
 
 ---
 
-### `rootStoragePaths`
+### `sourceType`
 
 | | |
 |--|--|
-| Type | `array` of `rootStoragePath` objects |
+| Type | `string` (enum) |
+| Values | `"filesystem"` \| `"spreadsheet"` \| `"database"` \| `"api"` |
 
-Defines where the data lives on disk, per computing environment. Each entry:
+The type of data source this location represents. Determines which source-specific block is required:
+
+| Value | Required block |
+|-------|---------------|
+| `filesystem` | `filesystemSource` |
+| `spreadsheet` | `spreadsheetSource` + `entityType` |
+| `database` | `databaseSource` + `entityType` |
+| `api` | `apiSource` + `entityType` |
+
+---
+
+## Optional fields
+
+### `filesystemSource`
+
+| | |
+|--|--|
+| Type | `object` |
+| Required when | `sourceType` is `"filesystem"` |
+
+Contains all filesystem-specific configuration. Fields:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `rootStoragePaths` | Yes | array | Storage root paths, one per environment. See below. |
+| `entityLayout` | Yes | array of `entityLayoutLevel` | Physical hierarchy mapping folders/files to entities. See [entityLayout reference](entity-layout.md). |
+| `metadataMapping` | No | array | Extraction rules for global metadata fields. |
+| `pathTemplate` | No | string | Informational path template (e.g. `"{rootPath}/{subject}/{session}"`). |
+| `additionalFolders` | No | array of string | Folder names at the leaf level that are not entity hierarchy members. |
+
+**`rootStoragePaths`** — each entry:
 
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
@@ -67,16 +98,6 @@ Defines where the data lives on disk, per computing environment. Each entry:
 | `volumeName` | No | string | Disk/volume name (useful for removable media) |
 | `priority` | No | integer | Selection order when multiple paths match the active environment (lower = preferred, default 1) |
 | `isAvailable` | No | boolean | Runtime availability hint (default `true`) |
-
----
-
-### `entityLayout`
-
-| | |
-|--|--|
-| Type | `array` of `entityLayoutLevel` objects |
-
-The physical hierarchy that maps folder and file structure to semantic entities. Ordered from outermost (index 0) to innermost. See [entityLayout reference](entity-layout.md).
 
 ---
 
@@ -112,44 +133,6 @@ Declares the source data locations that were used to produce this location's dat
   ...
 }
 ```
-
----
-
-### `metadataMapping`
-
-| | |
-|--|--|
-| Type | `array` of mapping objects |
-
-Defines how global metadata fields are extracted from folder or file names in this specific location. Each item:
-
-| Field | Required | Type | Description |
-|-------|----------|------|-------------|
-| `metadataRef` | Yes | string | Key in `metadataDefinitions` to populate |
-| `extraction` | Yes | `metadataExtraction` object | Location-specific extraction rules |
-
-The same metadata field (e.g. `session_id`) can be extracted differently in each data location, allowing for different naming conventions while maintaining a shared vocabulary.
-
----
-
-### `pathTemplate`
-
-| | |
-|--|--|
-| Type | `string` |
-| Example | `"{rootPath}/{subject}/{session}/{recording}"` |
-
-Human-readable template showing the full path structure. Informational only — the authoritative definition is `entityLayout`.
-
----
-
-### `additionalFolders`
-
-| | |
-|--|--|
-| Type | `array` of `string` |
-
-Names of folders that may exist within the leaf level of this data location but are not part of the entity hierarchy (e.g. `["logs", "temp", "backup"]`).
 
 ---
 

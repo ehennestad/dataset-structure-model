@@ -45,9 +45,10 @@ graph TD
     DSM --> DL[dataLocations]
     DSM --> PR[preferences]
 
-    DL --> RSP[rootStoragePaths\nwhere the data lives]
-    DL --> EL[entityLayout\nhow folders map to entities]
-    DL --> MM[metadataMapping\nhow to extract metadata]
+    DL --> FS[filesystemSource\nfilesystem-specific config]
+    FS --> RSP[rootStoragePaths\nwhere the data lives]
+    FS --> EL[entityLayout\nhow folders map to entities]
+    FS --> MM[metadataMapping\nhow to extract metadata]
 
     MM -->|metadataRef| MD
     EL -->|entityType references| ET
@@ -64,7 +65,7 @@ A global dictionary of metadata fields. Each field is associated with an entity 
 
 ### dataLocations
 
-The heart of a DSM config. Each data location describes one folder tree — its category (raw, processed, derived...), root paths per environment, entity layout, and metadata extraction rules.
+The heart of a DSM config. Each data location describes one logical collection of data — its category (raw, processed, derived...) and source type. For filesystem sources, a nested `filesystemSource` block holds the root paths per environment, entity layout, and metadata extraction rules.
 
 ### entityRelationships
 
@@ -140,14 +141,17 @@ A tool reads `session_id = "session1"` from the source entity and constructs the
 
 ## Multi-environment paths
 
-A data location can have multiple `rootStoragePaths`, one per computing environment:
+A filesystem data location can have multiple `rootStoragePaths`, one per computing environment. These are nested inside `filesystemSource`:
 
 ```json
-"rootStoragePaths": [
-  { "identifier": "windows-lab",  "path": "D:\\Data\\Raw",            "environment": "windows-lab" },
-  { "identifier": "mac-analysis", "path": "/Volumes/DataDrive/Raw",    "environment": "mac-analysis" },
-  { "identifier": "hpc",          "path": "/scratch/user/data/raw",    "environment": "hpc-cluster" }
-]
+"filesystemSource": {
+  "rootStoragePaths": [
+    { "identifier": "windows-lab",  "path": "D:\\Data\\Raw",          "environment": "windows-lab" },
+    { "identifier": "mac-analysis", "path": "/Volumes/DataDrive/Raw",  "environment": "mac-analysis" },
+    { "identifier": "hpc",          "path": "/scratch/user/data/raw",  "environment": "hpc-cluster" }
+  ],
+  "entityLayout": [ ... ]
+}
 ```
 
 `preferences.environmentIdentifier` selects which path to use at runtime.

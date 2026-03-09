@@ -63,11 +63,9 @@ The intended integration pattern is: pipeline tools read DSM configs to resolve 
 
 ---
 
-## `fileClass` describes a role, not a format
+## `fileGroupingPattern` describes which files belong to an entity
 
-The `role` field on `fileClass` (primary, sidecar, qc, log, config, auxiliary) describes what the file *does* relative to its entity, not what it *is* technically. The `format` field (MIME type) captures the technical format. This separation allows tools to find the primary data file without knowing its format, and allows LLMs to understand the scientific purpose of each file class independently of its implementation details.
-
-The `groupKey` field captures co-occurrence constraints: files sharing a `groupKey` at the same entity level are expected to be present together. This models multi-file formats (e.g., a recording that is always represented by `.dat` + `.dat.meta` + `.dat.nrs` files).
+`filePatterns` on an `entityLayoutLevel` lists the regex patterns for files expected at that level, with an `isRequired` flag to mark files whose absence indicates an incomplete entity. The schema deliberately keeps this simple — pattern matching and completeness checking — without prescribing file roles, formats, or co-occurrence groups. Domain-specific semantics can be captured in `description` fields elsewhere in the config.
 
 ---
 

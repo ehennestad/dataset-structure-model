@@ -85,39 +85,20 @@ Whether entities at this level are represented by folders or individual files.
 
 | | |
 |--|--|
-| Type | `array` of `fileClass` objects |
+| Type | `array` of `fileGroupingPattern` objects |
 
-Describes the classes of files associated with entities at this level. Each `fileClass` entry:
+Describes the file grouping patterns expected at this level. Each entry:
 
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
-| `pattern` | Yes | string (regex) | Matched against file names |
-| `role` | Yes | enum | `primary` \| `sidecar` \| `qc` \| `log` \| `config` \| `auxiliary` |
-| `format` | No | string | MIME type or format name (e.g. `"image/tiff"`, `"application/x-nwb"`) |
-| `description` | No | string | What this file contains (scientific description) |
-| `isRequired` | No | boolean | Whether the file must exist (default `false`) |
-| `groupKey` | No | string | Co-occurrence key — files sharing a `groupKey` are expected together |
-| `metadataExtractors` | No | array | Extraction rules applied to file *content* (for sidecar files) |
-
-**Roles:**
-
-| Value | Meaning |
-|-------|---------|
-| `primary` | The actual data file (`.tif`, `.edf`, `.nwb`) |
-| `sidecar` | Companion metadata describing the primary (e.g. `_metadata.json`) |
-| `qc` | Quality control output |
-| `log` | Acquisition or processing log |
-| `config` | Parameters used to produce this entity |
-| `auxiliary` | Other associated files |
-
-**Co-occurrence with `groupKey`:**
-
-Files sharing a `groupKey` at the same entity level are expected to be present together. If one is present and others are missing, the entity is considered incomplete. This models formats where data is split across multiple files:
+| `pattern` | Yes | string (regex) | Matched against file names at this level |
+| `isRequired` | No | boolean | Whether a matching file must exist for the entity to be complete (default `false`) |
 
 ```json
 "filePatterns": [
-  { "pattern": ".*\\.dat$",      "role": "primary", "groupKey": "ephys", "isRequired": true },
-  { "pattern": ".*\\.dat\\.meta$","role": "sidecar", "groupKey": "ephys", "isRequired": true }
+  { "pattern": ".*\\.dat$",       "isRequired": true  },
+  { "pattern": ".*\\.dat\\.meta$","isRequired": true  },
+  { "pattern": ".*\\.log$",       "isRequired": false }
 ]
 ```
 

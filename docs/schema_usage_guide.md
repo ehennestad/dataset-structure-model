@@ -87,12 +87,14 @@ The `dataLocations` array contains definitions for different types of data, each
     "displayName": "Two-Photon Calcium Imaging",
     "description": "Raw two-photon calcium imaging recordings",
     "dataCategory": "raw",
-    "rootStoragePaths": [ ... ],
-    "pathTemplate": "{rootPath}/{subject}/{session}/{recording}",
-    "entityLayout": [ ... ],
-    "metadataMapping": [ ... ],
-    "entityRelationships": [ ... ],
-    "tags": ["imaging", "two-photon", "calcium"]
+    "sourceType": "filesystem",
+    "tags": ["imaging", "two-photon", "calcium"],
+    "filesystemSource": {
+      "rootStoragePaths": [ ... ],
+      "pathTemplate": "{rootPath}/{subject}/{session}/{recording}",
+      "entityLayout": [ ... ],
+      "metadataMapping": [ ... ]
+    }
   }
 ]
 ```
@@ -101,11 +103,12 @@ Key properties of a data location:
 - `identifier`: Unique identifier for the data location
 - `displayName`: Human-readable name
 - `dataCategory`: Category defining its role in the data lifecycle
-- `rootStoragePaths`: Physical storage locations
-- `pathTemplate`: Template showing the expected structure
-- `entityLayout`: Definition of the folder/file structure
-- `metadataMapping`: Extraction rules for metadata fields associated with entities (see below)
-- `entityRelationships`: Relationships between entity types
+- `sourceType`: Type of source (`"filesystem"`, `"spreadsheet"`, `"database"`, `"api"`)
+- `filesystemSource`: Block containing all filesystem-specific config (required when `sourceType` is `"filesystem"`):
+  - `rootStoragePaths`: Physical storage locations per environment
+  - `pathTemplate`: Informational template showing the expected path structure
+  - `entityLayout`: Definition of the folder/file hierarchy
+  - `metadataMapping`: Extraction rules for metadata fields
 
 #### FAQ: Why is `dataCategory` a property of each `dataLocation`?
 
@@ -251,7 +254,7 @@ Each metadata mapping includes:
 
 See the `examples/` directory for complete example configurations:
 
-- `neuroscience_dataset_example.json`: Example configuration for neuroscience datasets with two-photon calcium imaging data
+- `sharebrain_toy_dataset.json`: Real-world neuroscience dataset example (SHAREbrain Luca_Toy_Dataset)
 
 ## Best Practices
 

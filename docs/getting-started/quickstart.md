@@ -51,43 +51,46 @@ Create a file `my-dataset.json`:
       "identifier": "raw-data",
       "displayName": "Raw Data",
       "dataCategory": "raw",
-      "rootStoragePaths": [
-        {
-          "identifier": "my-machine",
-          "path": "/data/raw",
-          "environment": "my-machine"
-        }
-      ],
-      "entityLayout": [
-        {
-          "name": "subjects",
-          "entityType": "subject",
-          "matchPattern": "^[A-Za-z0-9]+$"
-        },
-        {
-          "name": "sessions",
-          "entityType": "session",
-          "matchPattern": "^\\d{8}_.*$"
-        }
-      ],
-      "metadataMapping": [
-        {
-          "metadataRef": "subject_id",
-          "extraction": {
-            "method": "substring",
-            "pattern": "0:end",
-            "entityLayoutLevel": 0
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [
+          {
+            "identifier": "my-machine",
+            "path": "/data/raw",
+            "environment": "my-machine"
           }
-        },
-        {
-          "metadataRef": "session_id",
-          "extraction": {
-            "method": "regex",
-            "pattern": "^\\d{8}_(.+)$",
-            "entityLayoutLevel": 1
+        ],
+        "entityLayout": [
+          {
+            "name": "subjects",
+            "entityType": "subject",
+            "matchPattern": "^[A-Za-z0-9]+$"
+          },
+          {
+            "name": "sessions",
+            "entityType": "session",
+            "matchPattern": "^\\d{8}_.*$"
           }
-        }
-      ]
+        ],
+        "metadataMapping": [
+          {
+            "metadataRef": "subject_id",
+            "extraction": {
+              "method": "substring",
+              "pattern": "0:end",
+              "entityLayoutLevel": 0
+            }
+          },
+          {
+            "metadataRef": "session_id",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^\\d{8}_(.+)$",
+              "entityLayoutLevel": 1
+            }
+          }
+        ]
+      }
     }
   ],
   "preferences": {

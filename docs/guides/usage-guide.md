@@ -38,18 +38,21 @@ A minimal valid configuration looks like this:
       "identifier": "raw-data",
       "displayName": "Raw Data",
       "dataCategory": "raw",
-      "rootStoragePaths": [
-        { "identifier": "main", "path": "/data/raw", "storageType": "local" }
-      ],
-      "entityLayout": [
-        { "name": "subjects", "entityType": "subject", "matchPattern": "^[A-Za-z0-9]+$", "isVariable": true }
-      ],
-      "metadataMapping": [
-        {
-          "metadataRef": "subject_id",
-          "extraction": { "method": "substring", "pattern": "0:end", "entityLayoutLevel": 0 }
-        }
-      ]
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [
+          { "identifier": "main", "path": "/data/raw", "storageType": "local" }
+        ],
+        "entityLayout": [
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^[A-Za-z0-9]+$", "isVariable": true }
+        ],
+        "metadataMapping": [
+          {
+            "metadataRef": "subject_id",
+            "extraction": { "method": "substring", "pattern": "0:end", "entityLayoutLevel": 0 }
+          }
+        ]
+      }
     }
   ]
 }
@@ -164,14 +167,17 @@ A [data location](../reference/data-locations.md) describes one logical collecti
     "displayName": "Two-Photon Calcium Imaging",
     "description": "Raw two-photon calcium imaging recordings from cortical neurons",
     "dataCategory": "raw",
+    "sourceType": "filesystem",
     "tags": ["imaging", "two-photon", "calcium"],
     "customProperties": {
       "microscope": "Bruker",
       "imagingRegion": "cortical layer 2/3"
     },
-    "rootStoragePaths": [ ... ],
-    "entityLayout": [ ... ],
-    "metadataMapping": [ ... ]
+    "filesystemSource": {
+      "rootStoragePaths": [ ... ],
+      "entityLayout": [ ... ],
+      "metadataMapping": [ ... ]
+    }
   }
 ]
 ```
@@ -190,27 +196,30 @@ See [Data Location Categories](data-location-categories.md) for the full list of
 
 ### Root Storage Paths
 
-Each data location can have multiple [root storage paths](../reference/data-locations.md#rootstoragepaths) — one per computing environment.
+For `filesystem` data locations, `rootStoragePaths` is defined inside `filesystemSource` and can list one path per computing environment.
 
 ```json
-"rootStoragePaths": [
-  {
-    "identifier": "lab-windows",
-    "path": "D:\\Data\\TwoPhoton",
-    "storageType": "local",
-    "environment": "windows-lab",
-    "priority": 1,
-    "isAvailable": true
-  },
-  {
-    "identifier": "analysis-mac",
-    "path": "/Volumes/DataDrive/TwoPhoton",
-    "storageType": "external",
-    "environment": "mac-analysis",
-    "priority": 1,
-    "isAvailable": true
-  }
-]
+"filesystemSource": {
+  "rootStoragePaths": [
+    {
+      "identifier": "lab-windows",
+      "path": "D:\\Data\\TwoPhoton",
+      "storageType": "local",
+      "environment": "windows-lab",
+      "priority": 1,
+      "isAvailable": true
+    },
+    {
+      "identifier": "analysis-mac",
+      "path": "/Volumes/DataDrive/TwoPhoton",
+      "storageType": "external",
+      "environment": "mac-analysis",
+      "priority": 1,
+      "isAvailable": true
+    }
+  ],
+  "entityLayout": [ ... ]
+}
 ```
 
 Tools select the path whose `environment` matches the current `preferences.environmentIdentifier`. The `priority` field breaks ties when multiple paths match the same environment.
@@ -223,8 +232,9 @@ If a data location was produced from other locations, declare this with `derived
 {
   "identifier": "processed-calcium-imaging",
   "dataCategory": "processed",
+  "sourceType": "filesystem",
   "derivedFrom": ["two-photon-calcium-imaging"],
-  ...
+  "filesystemSource": { ... }
 }
 ```
 
@@ -292,46 +302,31 @@ If a level does not correspond to a named entity type, use `"entityType": "other
 
 ---
 
-## File Classes
+## File Grouping Patterns
 
-Within an `entityLayout` level, `filePatterns` lists the [file classes](../reference/entity-layout.md#filepatterns) expected at that level — one entry per class of file.
+Within an `entityLayout` level, `filePatterns` lists the file grouping patterns expected at that level — one entry per group of files.
 
 ```json
 "filePatterns": [
   {
     "pattern": ".*\\.tif$",
-    "role": "primary",
-    "format": "image/tiff",
-    "description": "Raw calcium imaging frames, 16-bit single-channel",
-    "isRequired": true,
-    "groupKey": "imaging-data"
+    "isRequired": true
   },
   {
     "pattern": ".*_metadata\\.json$",
-    "role": "sidecar",
-    "format": "application/json",
-    "description": "Acquisition parameters: frame rate, imaging depth, laser power",
-    "isRequired": false,
-    "groupKey": "imaging-data",
-    "metadataExtractors": [
-      { "method": "function", "extractorFunction": "extractImagingParameters" }
-    ]
+    "isRequired": false
   }
 ]
 ```
 
-The `role` enum values:
+Each entry has two fields:
 
-| Role | Meaning |
-|------|---------|
-| `primary` | The main data file for this entity |
-| `sidecar` | Companion file describing the primary (e.g. `_metadata.json`) |
-| `qc` | Quality control output |
-| `log` | Acquisition or processing log |
-| `config` | Parameters used to produce this entity |
-| `auxiliary` | Other associated files |
+| Field | Required | Description |
+|-------|----------|-------------|
+| `pattern` | Yes | Regex matched against file names at this level |
+| `isRequired` | No | Whether a matching file must exist (default `false`) |
 
-Files sharing the same `groupKey` at a given entity level are expected to co-occur. If one is present but others in the group are missing, tools can report the entity as incomplete.
+If a file matching an `isRequired: true` pattern is absent, tools can report the entity as incomplete.
 
 ---
 
@@ -423,10 +418,8 @@ The [preferences](../reference/preferences.md) block records the context in whic
 
 3. **Use `derivedFrom`** on every processed or derived location to record its provenance. Pipeline tools can read this to resolve input paths.
 
-4. **Use `role` in `filePatterns`** rather than free-text descriptions of file types. The controlled vocabulary enables tools to find the primary data file without knowing its format.
+4. **Use `filePatterns` with `isRequired: true`** for files that must exist for an entity to be considered complete. This lets tools detect incomplete entities and report missing data.
 
-5. **Use `groupKey`** whenever a recording or entity is represented by multiple files that must be present together (e.g. `.dat` + `.dat.meta`).
+5. **Use `pathComponentTemplate`** on entity layout levels in derived locations. This lets tools generate output folder names by substituting source entity metadata values, keeping generation and parsing in sync.
 
-6. **Use `pathComponentTemplate`** on entity layout levels in derived locations. This lets tools generate output folder names by substituting source entity metadata values, keeping generation and parsing in sync.
-
-7. **Include `description` fields** throughout your configuration. These are the primary surface for LLM tools that read DSM configs — the richer the descriptions, the better LLMs can reason about your data.
+6. **Include `description` fields** throughout your configuration. These are the primary surface for LLM tools that read DSM configs — the richer the descriptions, the better LLMs can reason about your data.
