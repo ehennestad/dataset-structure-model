@@ -164,7 +164,7 @@
             }
           },
           "then": {
-            "required": ["rootStoragePaths", "entityLayout"]
+            "required": ["filesystemSource"]
           }
         },
         {
@@ -214,7 +214,7 @@
         "sourceType": {
           "type": "string",
           "enum": ["filesystem", "spreadsheet", "database", "api"],
-          "description": "The type of data source this location represents. Determines which configuration fields apply. Use 'filesystem' for folder/file hierarchies (requires rootStoragePaths and entityLayout); 'spreadsheet', 'database', or 'api' for tabular or remote sources."
+          "description": "The type of data source this location represents. Determines which source-specific block is required: 'filesystem' requires filesystemSource; 'spreadsheet', 'database', and 'api' require their respective source block and entityType."
         },
         "entityType": {
           "type": "string",
@@ -238,50 +238,8 @@
           "type": "object",
           "description": "Optional free-form key-value pairs for domain-specific or tool-specific metadata not covered by the schema. Values can be any JSON type."
         },
-        "rootStoragePaths": {
-          "type": "array",
-          "description": "Array of storage root path configurations. Supports multiple environments (e.g., Windows lab, Mac analysis) and multiple storage locations for distributed datasets.",
-          "items": {
-            "$ref": "#/definitions/rootStoragePath"
-          }
-        },
-        "entityLayout": {
-          "type": "array",
-          "description": "Ordered definition of the physical hierarchy that maps folder and file structure to semantic entities. Each item represents one level of the hierarchy, from outermost (index 0) to innermost.",
-          "items": {
-            "$ref": "#/definitions/entityLayoutLevel"
-          }
-        },
-        "metadataMapping": {
-          "type": "array",
-          "description": "Defines how metadata fields (declared globally in metadataDefinitions) are extracted from filenames or folder names in this data location. Each item maps one global metadata field to a location-specific extraction rule. No new metadata fields should be defined here.",
-          "items": {
-            "type": "object",
-            "required": ["metadataRef", "extraction"],
-            "additionalProperties": false,
-            "properties": {
-              "metadataRef": {
-                "type": "string",
-                "description": "Key of the global metadata definition in metadataDefinitions that this extraction rule populates"
-              },
-              "extraction": {
-                "$ref": "#/definitions/metadataExtraction",
-                "description": "Location-specific extraction rules for this metadata field"
-              }
-            }
-          }
-        },
-        "pathTemplate": {
-          "type": "string",
-          "description": "Optional human-readable template showing the full expected path structure with placeholders (e.g., '{rootPath}/{subject}/{session}'). Informational only — the authoritative path structure is defined by entityLayout.",
-          "default": null
-        },
-        "additionalFolders": {
-          "type": "array",
-          "description": "List of folder names that may exist within the leaf level of this data location but are not part of the entity hierarchy (e.g., 'logs', 'temp')",
-          "items": {
-            "type": "string"
-          }
+        "filesystemSource": {
+          "$ref": "#/definitions/filesystemSource"
         },
         "spreadsheetSource": {
           "$ref": "#/definitions/spreadsheetSource"
@@ -393,6 +351,59 @@
         "metadataRef": {
           "type": "string",
           "description": "Key in the top-level metadataDefinitions that this column provides values for"
+        }
+      }
+    },
+    "filesystemSource": {
+      "type": "object",
+      "description": "Configuration for a filesystem-based data location where entities are discovered by traversing a folder/file hierarchy.",
+      "required": ["rootStoragePaths", "entityLayout"],
+      "additionalProperties": false,
+      "properties": {
+        "rootStoragePaths": {
+          "type": "array",
+          "description": "Array of storage root path configurations. Supports multiple environments (e.g., Windows lab, Mac analysis) and multiple storage locations for distributed datasets.",
+          "items": {
+            "$ref": "#/definitions/rootStoragePath"
+          }
+        },
+        "entityLayout": {
+          "type": "array",
+          "description": "Ordered definition of the physical hierarchy that maps folder and file structure to semantic entities. Each item represents one level of the hierarchy, from outermost (index 0) to innermost.",
+          "items": {
+            "$ref": "#/definitions/entityLayoutLevel"
+          }
+        },
+        "metadataMapping": {
+          "type": "array",
+          "description": "Defines how metadata fields (declared globally in metadataDefinitions) are extracted from filenames or folder names in this data location. Each item maps one global metadata field to a location-specific extraction rule. No new metadata fields should be defined here.",
+          "items": {
+            "type": "object",
+            "required": ["metadataRef", "extraction"],
+            "additionalProperties": false,
+            "properties": {
+              "metadataRef": {
+                "type": "string",
+                "description": "Key of the global metadata definition in metadataDefinitions that this extraction rule populates"
+              },
+              "extraction": {
+                "$ref": "#/definitions/metadataExtraction",
+                "description": "Location-specific extraction rules for this metadata field"
+              }
+            }
+          }
+        },
+        "pathTemplate": {
+          "type": "string",
+          "description": "Optional human-readable template showing the full expected path structure with placeholders (e.g., '{rootPath}/{subject}/{session}'). Informational only — the authoritative path structure is defined by entityLayout.",
+          "default": null
+        },
+        "additionalFolders": {
+          "type": "array",
+          "description": "List of folder names that may exist within the leaf level of this data location but are not part of the entity hierarchy (e.g., 'logs', 'temp')",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
