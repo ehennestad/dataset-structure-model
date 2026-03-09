@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DatasetStructureModel",
-  "description": "A schema for describing the structure of scientific datasets, capturing both their physical layout on disk and their semantic organization.",
+  "description": "A schema for describing the structure of scientific datasets, capturing their physical layout, semantic organization, and the mapping between the two. This schema answers: 'How is my data organized and where do I find entities and their metadata?'",
   "type": "object",
   "required": ["schemaVersion", "dataLocations", "preferences"],
   "additionalProperties": false,
@@ -38,11 +38,11 @@
           },
           "identifierRef": {
             "type": "string",
-            "description": "Key of the metadataDefinitions field that uniquely identifies an entity of this type across all data locations. Two entities of this type from different locations are considered the same real-world entity when their extracted values for this metadata field are equal (and their parent entities are also matched). If absent, matching falls back to comparing the raw folder or file name."
+            "description": "Key of the metadataDefinitions field that uniquely identifies an entity of this type across all data locations. Two entities of this type from different locations are considered the same real-world entity when their extracted values for this metadata field are equal (and their parent entities are also matched). If absent, matching falls back to comparing the raw folder or file name. IMPORTANT: Extraction rules for this metadata field across all data locations MUST produce identical values for the same real-world entity. If locations use different naming conventions, apply 'normalize' on the extraction rules to ensure values converge."
           },
           "identifierRefs": {
             "type": "array",
-            "description": "Composite cross-location identity key. Use instead of identifierRef when identity requires multiple metadata fields (e.g., subject_id + session_number together). All referenced fields must be present and equal for two entities to be considered the same.",
+            "description": "Composite cross-location identity key. Use instead of identifierRef when identity requires multiple metadata fields (e.g., subject_id + session_number together). All referenced fields must be present and equal for two entities to be considered the same. IMPORTANT: The same normalization constraint as identifierRef applies to each referenced field.",
             "items": {
               "type": "string"
             }
@@ -154,8 +154,44 @@
   "definitions": {
     "dataLocation": {
       "type": "object",
-      "required": ["displayName", "identifier", "dataCategory", "rootStoragePaths", "entityLayout"],
+      "required": ["displayName", "identifier", "dataCategory", "sourceType"],
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sourceType": { "const": "filesystem" }
+            }
+          },
+          "then": {
+            "required": ["rootStoragePaths", "entityLayout"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "sourceType": { "const": "spreadsheet" } }
+          },
+          "then": {
+            "required": ["spreadsheetSource", "entityType"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "sourceType": { "const": "database" } }
+          },
+          "then": {
+            "required": ["databaseSource", "entityType"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "sourceType": { "const": "api" } }
+          },
+          "then": {
+            "required": ["apiSource", "entityType"]
+          }
+        }
+      ],
       "properties": {
         "identifier": {
           "type": "string",
@@ -174,6 +210,15 @@
           "description": "Category of the data location defining its role in the data lifecycle",
           "enum": ["raw", "processed", "derived", "imported", "reference", "temporary", "archive", "custom"],
           "default": "raw"
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["filesystem", "spreadsheet", "database", "api"],
+          "description": "The type of data source this location represents. Determines which configuration fields apply. Use 'filesystem' for folder/file hierarchies (requires rootStoragePaths and entityLayout); 'spreadsheet', 'database', or 'api' for tabular or remote sources."
+        },
+        "entityType": {
+          "type": "string",
+          "description": "The entity type that this data location provides records for. Must match a name in the top-level entityTypes. For filesystem sources this is optional (can be inferred from entityLayout). For spreadsheet, database, and API sources this should be specified."
         },
         "derivedFrom": {
           "type": "array",
@@ -237,6 +282,117 @@
           "items": {
             "type": "string"
           }
+        },
+        "spreadsheetSource": {
+          "$ref": "#/definitions/spreadsheetSource"
+        },
+        "databaseSource": {
+          "$ref": "#/definitions/databaseSource"
+        },
+        "apiSource": {
+          "$ref": "#/definitions/apiSource"
+        }
+      }
+    },
+    "spreadsheetSource": {
+      "type": "object",
+      "description": "Configuration for reading entity records from a spreadsheet file. Each row becomes one entity record.",
+      "required": ["filePath", "columnMapping"],
+      "additionalProperties": false,
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "Path to the spreadsheet file (.xlsx, .csv, .tsv). Can be relative to the project root or absolute."
+        },
+        "sheetName": {
+          "type": "string",
+          "description": "Sheet name to read. If omitted, reads the first sheet."
+        },
+        "headerRow": {
+          "type": "integer",
+          "description": "1-based row number containing column headers.",
+          "default": 1
+        },
+        "columnMapping": {
+          "type": "array",
+          "description": "Maps spreadsheet columns to global metadata definitions. Each entry links one column to one metadata field.",
+          "items": {
+            "$ref": "#/definitions/columnMappingEntry"
+          }
+        }
+      }
+    },
+    "databaseSource": {
+      "type": "object",
+      "description": "Configuration for reading entity records from a database table or view. Each row becomes one entity record.",
+      "required": ["connectionRef", "tableName", "columnMapping"],
+      "additionalProperties": false,
+      "properties": {
+        "connectionRef": {
+          "type": "string",
+          "description": "Identifier referencing an externally stored connection configuration. The actual connection details (host, credentials) must be stored outside this schema, never inline."
+        },
+        "tableName": {
+          "type": "string",
+          "description": "Table or view name to query"
+        },
+        "columnMapping": {
+          "type": "array",
+          "description": "Maps database columns to global metadata definitions.",
+          "items": {
+            "$ref": "#/definitions/columnMappingEntry"
+          }
+        }
+      }
+    },
+    "apiSource": {
+      "type": "object",
+      "description": "Configuration for reading entity records from a remote API endpoint.",
+      "required": ["connectionRef", "endpoint", "fieldMapping"],
+      "additionalProperties": false,
+      "properties": {
+        "connectionRef": {
+          "type": "string",
+          "description": "Identifier referencing an externally stored API configuration (base URL, authentication). Never store credentials inline."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "API endpoint path for listing entities"
+        },
+        "fieldMapping": {
+          "type": "array",
+          "description": "Maps response fields to global metadata definitions.",
+          "items": {
+            "type": "object",
+            "required": ["field", "metadataRef"],
+            "additionalProperties": false,
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Field name or dot-separated path in the API response (e.g., 'subject.id')"
+              },
+              "metadataRef": {
+                "type": "string",
+                "description": "Key in the top-level metadataDefinitions that this field provides values for"
+              }
+            }
+          }
+        }
+      }
+    },
+    "columnMappingEntry": {
+      "type": "object",
+      "description": "Maps a single column in a spreadsheet or database to a global metadata definition.",
+      "required": ["column", "metadataRef"],
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "type": "string",
+          "description": "Column header name as it appears in the spreadsheet or database"
+        },
+        "metadataRef": {
+          "type": "string",
+          "description": "Key in the top-level metadataDefinitions that this column provides values for"
         }
       }
     },
@@ -341,7 +497,7 @@
     "fileGroupingPattern": {
       "type": "object",
       "description": "Describes a grouping pattern for files associated with an entity at a given hierarchy level",
-      "required": ["pattern", "fileType"],
+      "required": ["pattern"],
       "additionalProperties": false,
       "properties": {
         "pattern": {
@@ -364,7 +520,7 @@
         "method": {
           "type": "string",
           "description": "Extraction method to apply",
-          "enum": ["substring", "regex", "function", "template", "fixed", "filename", "filepath"]
+          "enum": ["substring", "regex", "function", "template", "fixed", "filename", "filepath", "sidecar"]
         },
         "pattern": {
           "type": "string",
@@ -381,6 +537,29 @@
         "entityLayoutLevel": {
           "type": ["integer", "null", "string"],
           "description": "Index (0-based integer) or name (string) of the entityLayout level from which to extract this metadata. Required when a single level is the source. Null or omitted means the full path is used."
+        },
+        "filePattern": {
+          "type": "string",
+          "description": "Glob pattern to locate the sidecar file within the entity's folder (e.g., '*_metadata.json'). Required when method is 'sidecar'."
+        },
+        "contentPath": {
+          "type": "string",
+          "description": "Path to the value within the sidecar file. For JSON/YAML: dot notation (e.g., 'imaging.depth_um'). For CSV: column name. For key-value text: key name. Used when method is 'sidecar'."
+        },
+        "fileFormat": {
+          "type": "string",
+          "description": "Format of the sidecar file. Used when method is 'sidecar'.",
+          "enum": ["json", "yaml", "csv", "ini", "xml", "text"]
+        },
+        "normalize": {
+          "type": "string",
+          "description": "Normalization applied after extraction to ensure consistent values across data locations. Particularly important for fields used in identifierRef cross-location matching.",
+          "enum": ["lowercase", "uppercase", "trim", "strip_prefix", "strip_suffix", "none"],
+          "default": "none"
+        },
+        "normalizePattern": {
+          "type": "string",
+          "description": "Argument for pattern-based normalizations. For 'strip_prefix': the prefix to remove (e.g., 'sub-'). For 'strip_suffix': the suffix to remove."
         }
       }
     },
