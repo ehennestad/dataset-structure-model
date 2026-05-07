@@ -1,10 +1,14 @@
 # Dataset Structure Model
 
-## Overview
+[![CI](https://github.com/ehennestad/dataset-structure-model/actions/workflows/ci.yml/badge.svg)](https://github.com/ehennestad/dataset-structure-model/actions/workflows/ci.yml)
 
-The "Dataset Structure Model" is a configuration framework for describing the structure of scientific datasets, capturing both their physical layout on disk and their semantic organization. It provides a standardized way to describe data locations, their hierarchical organization, and methods for extracting metadata from file paths. It enables standardized representation of, and access to heterogeneous datasets, whether flat or hierarchical, to facilitate interoperability, automation, and reproducibility across tools and research workflows.
+## Summary
 
-This model aims to be useful for scientific research, data analysis pipelines, and any application that deals with complex data hierarchies across multiple storage locations or computing environments.
+**What it is.** The Dataset Structure Model is a JSON Schema (draft-07) for describing how a scientific dataset is laid out: where its files live, what entity hierarchy the folder structure encodes (for example study → site → participant → visit), and how metadata can be read out of file paths and names.
+
+**How it works.** A dataset is described declaratively in a single JSON document. The document specifies one or more storage locations, the entity layout under each location, how directories and filenames map to entity identifiers and metadata fields, how files are grouped by role (primary data, sidecars, QC, logs, configuration), and how entities at different locations refer to the same underlying thing. Tooling reads this description and can then validate paths, look up files, extract metadata, and treat heterogeneous datasets through a uniform interface — without bespoke filesystem code for each dataset.
+
+**Why it exists.** Scientific datasets are organised in many different ways, and that variation is the main barrier to writing reusable analysis pipelines and data-management tools. Existing standards such as BIDS, NWB, and openMINDS define specific data formats or domain models; none of them describe arbitrary dataset layouts in a portable, machine-readable way. The Dataset Structure Model fills that gap, so the same tooling can work across datasets, storage backends, and computing environments.
 
 ## Repository Contents
 
