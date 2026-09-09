@@ -1,10 +1,13 @@
 import copy
 import json
 import pathlib
+import sys
 
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent
+# The Python reader is importable without installation.
+sys.path.insert(0, str(REPO_ROOT / "src" / "python"))
 SCHEMA_PATH = REPO_ROOT / "schema" / "DatasetStructureModel.schema.json"
 ENTITY_RECORD_SCHEMA_PATH = REPO_ROOT / "schema" / "EntityRecord.schema.json"
 DIRECTORY_LISTING_SCHEMA_PATH = REPO_ROOT / "schema" / "DirectoryListing.schema.json"

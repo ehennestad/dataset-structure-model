@@ -13,12 +13,14 @@ This guide covers the tools and workflow for contributing to the Dataset Structu
 git clone https://github.com/ehennestad/dataset-structure-model.git
 cd dataset-structure-model
 
+# Install the Python reader (editable) with the test dependencies; adds the `dsm` command
+pip install -e ".[test]"
+
 # Install documentation dependencies
 pip install -r requirements-docs.txt
-
-# Install test dependencies
-pip install -r requirements-test.txt
 ```
+
+`pytest tests/` also works without installing: the suite puts `src/python` on the path.
 
 ---
 
@@ -45,7 +47,9 @@ pytest tests/ -v
 | `test_examples.py` | Every example validates; documents that break the frozen-core rules are rejected |
 | `test_reference_integrity.py` | Cross-references in every example resolve (identity fields, `ofEntity`, level names, `derivedFrom`, template tokens) |
 | `test_entity_record.py` | `EntityRecord.schema.json` and `DirectoryListing.schema.json` are valid; every expected record validates |
-| `test_conformance.py` | Every conformance case is self-consistent: config valid, paths exist, listing fully accounted for, extractions and file patterns re-evaluate to the expectation |
+| `test_conformance.py` | Every conformance case is self-consistent: config valid, paths exist, listing fully accounted for, extractions and file patterns re-evaluate to the expectation (independent of the reader) |
+| `test_python_reader.py` | The Python reader passes every conformance case; extraction, listing, validation, comparison and CLI contracts |
+| `test_walker_rules.py` | Reader rules with no fixture case, on in-memory listings |
 | `test_docs_snippets.py` | Every complete JSON config embedded in `docs/` validates and is coherent |
 
 ---
@@ -123,8 +127,9 @@ dataset-structure-model/
 │   └── contributing/
 ├── tests/                                   ← pytest test suite
 ├── src/
-│   ├── python/                              ← Python API (first pass on branch wip-python-api)
+│   ├── python/dsm/                          ← the Python reference reader (`dsm` command)
 │   └── matlab/                              ← MATLAB API (first pass on branch wip-matlab-api)
+├── pyproject.toml
 ├── mkdocs.yml
 ├── requirements-docs.txt
 ├── requirements-test.txt

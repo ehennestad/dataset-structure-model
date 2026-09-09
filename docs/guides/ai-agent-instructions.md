@@ -174,11 +174,13 @@ Config:
 }
 ```
 
-## Validate
+## Validate, then dry-run
 
 ```bash
-pip install jsonschema
-python -m jsonschema -i my-dataset.json schema/DatasetStructureModel.schema.json
+pip install -e .                                  # from a clone of the repository
+dsm validate my-dataset.json                      # schema + cross-reference rules
+dsm listing raw main /path/to/data -o listing.json
+dsm walk my-dataset.json listing.json             # what the config finds in the listing
 ```
 
-Schema validation does not check the cross-reference rules; a reader's dry-run does.
+`dsm validate` checks the schema and the cross-reference rules. `dsm walk` reports entities found per type, files no rule accounts for (`Unmatched`), incomplete entities and unresolved extractors — read it and revise the config until the counts match the dataset. A listing can also be built from `find` output with `dsm listing --text`, so no filesystem access is needed.

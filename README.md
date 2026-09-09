@@ -16,6 +16,7 @@
 - **docs/**: Documentation (mkdocs site)
 - **examples/**: Example configurations
 - **conformance/**: Fixtures a reader must pass — a config, a directory listing and the entity records to produce
+- **src/python/dsm/**: The Python reference reader and `dsm` command (validate, listing, walk, compare, conformance)
 - **tests/**: Schema, example, cross-reference and docs-snippet tests (`pytest tests/`)
 
 ## Key Features
@@ -30,6 +31,12 @@
 - **Validation**: Ensure metadata values conform to expected formats and constraints
 
 ## Getting Started
+
+```bash
+pip install -e .
+dsm validate examples/flat_session_files.json
+dsm walk conformance/flat-session-files/config.json conformance/flat-session-files/listing.json
+```
 
 1. Read the [Quick Start](docs/getting-started/quickstart.md) and [Core Concepts](docs/getting-started/concepts.md)
 2. Work through the [Usage Guide](docs/guides/usage-guide.md)

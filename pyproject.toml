@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dataset-structure-model"
+version = "1.0.0"
+description = "Reference reader, validator and dry-run tool for Dataset Structure Model configs"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+dependencies = ["jsonschema>=4.17"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+dsm = "dsm.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ehennestad/dataset-structure-model"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/python/dsm"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"schema/DatasetStructureModel.schema.json" = "dsm/schemas/DatasetStructureModel.schema.json"
+"schema/EntityRecord.schema.json" = "dsm/schemas/EntityRecord.schema.json"
+"schema/DirectoryListing.schema.json" = "dsm/schemas/DirectoryListing.schema.json"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/python", "schema", "conformance", "examples", "tests", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

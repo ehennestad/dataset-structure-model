@@ -71,7 +71,7 @@ A reader passes a case when:
 1. **Records match by key.** The key of a record is `(entityType, identity, parents)`. Order of records is irrelevant; there must be no extra and no missing records.
 2. **Locations match by `(dataLocationIdentifier, rootStoragePathIdentifier)`**, in any order. `paths` and each `files` array are compared as sorted sets.
 3. **`metadata` is compared exactly.** Dates, times and datetimes are ISO 8601 strings; integers are JSON numbers.
-4. **`issues` are compared by `code`** as a multiset; messages are free text.
+4. **`issues` are compared by `code`** as a set; messages are free text, and how many times a reader repeats a code is not compared.
 5. **`unmatched` is compared as a set** of `(location, root, path, reason)`.
 6. **Error cases** compare only the error `code`.
 
@@ -115,6 +115,8 @@ for each case in conformance/:
     result = reader.walk(config, listing)          # records + unmatched
     compare(result, expected)                       # rules above
 ```
+
+The Python reader implements exactly this: `dsm conformance` runs every case and CI fails when one does not pass. A reader in another language does not need its own comparison code: write the records as JSON in the schema's shape and run `dsm compare expected.json actual.json`. See the [Python API](../api/python.md).
 
 The repository's own suite (`tests/test_conformance.py`) checks that every case is self-consistent — the config validates, every expected path exists in the listing, every listing entry is accounted for, and every declarative extraction and file pattern re-evaluates to the expectation. It is not a reader; it is what makes the expectations trustworthy before one exists.
 

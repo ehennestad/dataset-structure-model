@@ -8,7 +8,7 @@ Language-specific libraries for loading and working with Dataset Structure Model
 
     ---
 
-    Pydantic v2 models, configuration loader, JSON Schema validator, and entity traversal utilities.
+    The reference reader: validator, directory listings, the dry-run walk, and the conformance runner. `pip install -e .` gives the `dsm` command.
 
     [:octicons-arrow-right-24: Python API](python.md)
 
@@ -23,4 +23,4 @@ Language-specific libraries for loading and working with Dataset Structure Model
 </div>
 
 !!! info "Status"
-    Neither API is released. Both exist as first passes on `wip-*` branches written against the pre-freeze draft and will be brought to 1.0.0 against a shared set of conformance fixtures (directory listings plus the [entity records](../reference/entity-record.md) a reader must produce), so that the MATLAB and Python readers are checked against the same expectations.
+    The Python reader is the reference implementation and passes every [conformance case](../guides/conformance.md). The MATLAB API exists as a first pass on `wip-matlab-api`, written against the pre-freeze draft; it will be rebuilt against the same cases, and `dsm compare` checks its output without a second comparison implementation.

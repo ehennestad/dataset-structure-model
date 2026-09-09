@@ -77,10 +77,18 @@ Reading it top to bottom: two entity types, each identified by a metadata field;
 ## Step 3: Validate
 
 ```bash
-python -m jsonschema -i my-dataset.json schema/DatasetStructureModel.schema.json
+pip install -e .                 # once, from the clone; adds the `dsm` command
+dsm validate my-dataset.json
 ```
 
-No output means the config is valid.
+Then see what the config finds in your data:
+
+```bash
+dsm listing raw my-machine /data/raw -o listing.json
+dsm walk my-dataset.json listing.json
+```
+
+The report lists entities per type, incomplete entities, and any file or folder no rule accounts for.
 
 ## Step 4: Add more detail
 
