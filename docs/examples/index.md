@@ -38,4 +38,4 @@ Validate any of them:
 python -m jsonschema -i examples/flat_session_files.json schema/DatasetStructureModel.schema.json
 ```
 
-`examples/entity-records/` holds the [entity records](../reference/entity-record.md) a reader is expected to produce for the flat-files example.
+The [conformance fixtures](../guides/conformance.md) hold, for the flat-files and raw/processed examples, a directory listing and the [entity records](../reference/entity-record.md) a reader is expected to produce.

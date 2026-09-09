@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    { "name": "subject", "isPrimary": true, "identifierRef": "subject_id" },
+    { "name": "session", "identifierRef": "session_id" }
+  ],
+  "entityRelationships": [
+    { "sourceEntity": "subject", "targetEntity": "session", "relationType": "oneToMany", "relationName": "hasSessions" }
+  ],
+  "metadataDefinitions": {
+    "subject_id": { "name": "subject_id", "dataType": "string", "ofEntity": "subject", "validation": { "pattern": "^m\\d{3}$" } },
+    "session_id": { "name": "session_id", "dataType": "string", "ofEntity": "session", "description": "Protocol name. Unique within a subject, not across subjects: identity includes the parent." },
+    "session_date": { "name": "session_date", "dataType": "date", "ofEntity": "session" }
+  },
+  "dataLocations": [
+    {
+      "identifier": "raw",
+      "displayName": "Raw",
+      "dataCategory": "raw",
+      "access": "read",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [ { "identifier": "main", "path": "/data/raw" } ],
+        "entityLayout": [
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^m\\d{3}$", "excludePatterns": ["^temp$", "^\\..*"] },
+          { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{8}_[a-z][a-z0-9_]*$",
+            "filePatterns": [
+              { "name": "movie", "pattern": "\\.tif$", "isRequired": true, "cardinality": "one" },
+              { "name": "notes", "pattern": "^notes\\.txt$", "cardinality": "one" }
+            ] }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "subject_id",   "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "subjects" } },
+          { "metadataRef": "session_id",   "extraction": { "method": "regex", "pattern": "^\\d{8}_([a-z]+)", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_date", "extraction": { "method": "substring", "pattern": "0:8", "valueFormat": "yyyyMMdd", "entityLayoutLevel": "sessions" } }
+        ]
+      }
+    }
+  ]
+}

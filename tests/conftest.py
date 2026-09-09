@@ -7,8 +7,9 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).parent.parent
 SCHEMA_PATH = REPO_ROOT / "schema" / "DatasetStructureModel.schema.json"
 ENTITY_RECORD_SCHEMA_PATH = REPO_ROOT / "schema" / "EntityRecord.schema.json"
+DIRECTORY_LISTING_SCHEMA_PATH = REPO_ROOT / "schema" / "DirectoryListing.schema.json"
 EXAMPLES_DIR = REPO_ROOT / "examples"
-RECORDS_DIR = EXAMPLES_DIR / "entity-records"
+CONFORMANCE_DIR = REPO_ROOT / "conformance"
 DOCS_DIR = REPO_ROOT / "docs"
 
 
@@ -25,6 +26,11 @@ def schema():
 @pytest.fixture(scope="session")
 def entity_record_schema():
     return load_json(ENTITY_RECORD_SCHEMA_PATH)
+
+
+@pytest.fixture(scope="session")
+def directory_listing_schema():
+    return load_json(DIRECTORY_LISTING_SCHEMA_PATH)
 
 
 @pytest.fixture(scope="session")

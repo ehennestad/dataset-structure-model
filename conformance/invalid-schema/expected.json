@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "schema-validation",
+    "message": "The config does not validate: 'isAvailable' is not a rootStoragePath property; substring pattern '0:end' is not a slice."
+  }
+}

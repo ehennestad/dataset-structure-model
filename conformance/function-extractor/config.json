@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    { "name": "subject", "isPrimary": true, "identifierRef": "subject_id" },
+    { "name": "session", "identifierRef": "session_id" }
+  ],
+  "metadataDefinitions": {
+    "subject_id":     { "name": "subject_id", "dataType": "string", "ofEntity": "subject" },
+    "session_id":     { "name": "session_id", "dataType": "string", "ofEntity": "session" },
+    "session_number": { "name": "session_number", "dataType": "integer", "ofEntity": "session", "description": "Provided by the reader-registered extractor session_number_from_folder_name" }
+  },
+  "dataLocations": [
+    {
+      "identifier": "raw",
+      "displayName": "Raw",
+      "dataCategory": "raw",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [ { "identifier": "main", "path": "/data/raw" } ],
+        "entityLayout": [
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^m\\d{3}$" },
+          { "name": "sessions", "entityType": "session", "matchPattern": "^ses-.+$" }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "subject_id",     "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "subjects" } },
+          { "metadataRef": "session_id",     "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_number", "extraction": { "method": "function", "extractorFunction": "session_number_from_folder_name", "entityLayoutLevel": "sessions" } }
+        ]
+      }
+    }
+  ]
+}

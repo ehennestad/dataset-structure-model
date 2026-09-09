@@ -1,0 +1,37 @@
+{
+  "requiresExtractors": {
+    "session_number_from_folder_name": "Called with (fullPath, levelName, dataLocationIdentifier). Takes the component at the given level, strips the leading 'ses-', and returns the leading run of digits as an integer; returns null when the remainder does not start with a digit."
+  },
+  "records": [
+    {
+      "entityType": "subject",
+      "identity": { "subject_id": "m110" },
+      "parents": [],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["m110/"] } ],
+      "metadata": { "subject_id": "m110" }
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "ses-1" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "m110" } } ],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["m110/ses-1/"] } ],
+      "metadata": { "session_id": "ses-1", "session_number": 1, "subject_id": "m110" }
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "ses-2_extra" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "m110" } } ],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["m110/ses-2_extra/"] } ],
+      "metadata": { "session_id": "ses-2_extra", "session_number": 2, "subject_id": "m110" }
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "ses-pilot" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "m110" } } ],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["m110/ses-pilot/"] } ],
+      "metadata": { "session_id": "ses-pilot", "subject_id": "m110" },
+      "issues": [ { "code": "extraction-failed", "message": "session_number: extractor returned null and the field has no defaultValue" } ]
+    }
+  ],
+  "unmatched": []
+}

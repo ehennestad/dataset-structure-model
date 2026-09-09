@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    { "name": "subject", "isPrimary": true, "identifierRef": "subject_id" },
+    { "name": "session", "identifierRef": "session_id" }
+  ],
+  "metadataDefinitions": {
+    "subject_id":       { "name": "subject_id", "dataType": "string", "ofEntity": "subject", "validation": { "pattern": "^[A-Z]{2}\\d{2}$" } },
+    "subject_letters":  { "name": "subject_letters", "dataType": "string", "ofEntity": "subject" },
+    "session_id":       { "name": "session_id", "dataType": "string", "ofEntity": "session", "description": "Composed by template from subject, date and number" },
+    "session_datetime": { "name": "session_datetime", "dataType": "datetime", "ofEntity": "session" },
+    "session_date":     { "name": "session_date", "dataType": "date", "ofEntity": "session" },
+    "session_time":     { "name": "session_time", "dataType": "time", "ofEntity": "session" },
+    "session_number":   { "name": "session_number", "dataType": "integer", "ofEntity": "session" },
+    "session_suffix":   { "name": "session_suffix", "dataType": "string", "ofEntity": "session" },
+    "rig":              { "name": "rig", "dataType": "string", "ofEntity": "session" },
+    "relative_path":    { "name": "relative_path", "dataType": "string", "ofEntity": "session" },
+    "experiment":       { "name": "experiment", "dataType": "string", "ofEntity": "session", "defaultValue": "unknown" },
+    "notes_tag":        { "name": "notes_tag", "dataType": "string", "ofEntity": "session" }
+  },
+  "dataLocations": [
+    {
+      "identifier": "raw",
+      "displayName": "Raw",
+      "dataCategory": "raw",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [ { "identifier": "main", "path": "/data/raw" } ],
+        "entityLayout": [
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^sub-[A-Z]{2}\\d{2}$" },
+          { "name": "data", "isVariable": false, "fixedName": "data" },
+          { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{6}_s\\d+$" }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "subject_id",       "extraction": { "method": "substring", "pattern": ":", "normalize": "strip_prefix", "normalizePattern": "sub-", "entityLayoutLevel": "subjects" } },
+          { "metadataRef": "subject_letters",  "extraction": { "method": "substring", "pattern": "4:6", "normalize": "lowercase", "entityLayoutLevel": "subjects" } },
+          { "metadataRef": "session_datetime", "extraction": { "method": "regex", "pattern": "^(\\d{4}-\\d{2}-\\d{2}T\\d{6})_", "valueFormat": "yyyy-MM-dd'T'HHmmss", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_date",     "extraction": { "method": "substring", "pattern": "0:10", "valueFormat": "yyyy-MM-dd", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_time",     "extraction": { "method": "substring", "pattern": "11:17", "valueFormat": "HHmmss", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_number",   "extraction": { "method": "regex", "pattern": "_s(\\d+)$", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_suffix",   "extraction": { "method": "regex", "pattern": "s\\d+$", "entityLayoutLevel": 2 } },
+          { "metadataRef": "session_id",       "extraction": { "method": "template", "pattern": "{subject_id}_{session_date}_s{session_number}" } },
+          { "metadataRef": "rig",              "extraction": { "method": "fixed", "value": "2p-rig-1" } },
+          { "metadataRef": "relative_path",    "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": null } },
+          { "metadataRef": "experiment",       "extraction": { "method": "regex", "pattern": "^exp-(\\w+)", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "notes_tag",        "extraction": { "method": "regex", "pattern": "#(\\w+)", "entityLayoutLevel": "sessions" } }
+        ]
+      }
+    }
+  ]
+}

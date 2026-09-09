@@ -1,0 +1,21 @@
+{
+  "roots": [
+    {
+      "dataLocationIdentifier": "raw",
+      "rootStoragePathIdentifier": "main",
+      "entries": [
+        "sub-AB01/",
+        "sub-AB01/data/",
+        "sub-AB01/data/2025-05-23T100000_s7/",
+        "sub-AB01/data/2025-05-23T100000_s7/a.dat",
+        "sub-AB01/data/2025-06-01T093000_s8/",
+        "sub-CD02/",
+        "sub-CD02/data/",
+        "sub-CD02/data/2025-05-24T120000_s1/",
+        "sub-CD02/raw/",
+        "sub-CD02/raw/old.dat",
+        "sub-XY/"
+      ]
+    }
+  ]
+}

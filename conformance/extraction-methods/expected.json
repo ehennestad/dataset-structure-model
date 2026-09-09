@@ -1,0 +1,79 @@
+{
+  "records": [
+    {
+      "entityType": "subject",
+      "identity": { "subject_id": "AB01" },
+      "parents": [],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["sub-AB01/"] } ],
+      "metadata": { "subject_id": "AB01", "subject_letters": "ab" }
+    },
+    {
+      "entityType": "subject",
+      "identity": { "subject_id": "CD02" },
+      "parents": [],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["sub-CD02/"] } ],
+      "metadata": { "subject_id": "CD02", "subject_letters": "cd" }
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "AB01_2025-05-23_s7" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "AB01" } } ],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["sub-AB01/data/2025-05-23T100000_s7/"] } ],
+      "metadata": {
+        "session_id": "AB01_2025-05-23_s7",
+        "session_datetime": "2025-05-23T10:00:00",
+        "session_date": "2025-05-23",
+        "session_time": "10:00:00",
+        "session_number": 7,
+        "session_suffix": "s7",
+        "rig": "2p-rig-1",
+        "relative_path": "sub-AB01/data/2025-05-23T100000_s7",
+        "experiment": "unknown",
+        "subject_id": "AB01"
+      },
+      "issues": [ { "code": "extraction-failed", "message": "notes_tag: no match and no defaultValue" } ]
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "AB01_2025-06-01_s8" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "AB01" } } ],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["sub-AB01/data/2025-06-01T093000_s8/"] } ],
+      "metadata": {
+        "session_id": "AB01_2025-06-01_s8",
+        "session_datetime": "2025-06-01T09:30:00",
+        "session_date": "2025-06-01",
+        "session_time": "09:30:00",
+        "session_number": 8,
+        "session_suffix": "s8",
+        "rig": "2p-rig-1",
+        "relative_path": "sub-AB01/data/2025-06-01T093000_s8",
+        "experiment": "unknown",
+        "subject_id": "AB01"
+      },
+      "issues": [ { "code": "extraction-failed", "message": "notes_tag: no match and no defaultValue" } ]
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "CD02_2025-05-24_s1" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "CD02" } } ],
+      "locations": [ { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["sub-CD02/data/2025-05-24T120000_s1/"] } ],
+      "metadata": {
+        "session_id": "CD02_2025-05-24_s1",
+        "session_datetime": "2025-05-24T12:00:00",
+        "session_date": "2025-05-24",
+        "session_time": "12:00:00",
+        "session_number": 1,
+        "session_suffix": "s1",
+        "rig": "2p-rig-1",
+        "relative_path": "sub-CD02/data/2025-05-24T120000_s1",
+        "experiment": "unknown",
+        "subject_id": "CD02"
+      },
+      "issues": [ { "code": "extraction-failed", "message": "notes_tag: no match and no defaultValue" } ]
+    }
+  ],
+  "unmatched": [
+    { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "path": "sub-CD02/raw/", "reason": "no-match" },
+    { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "path": "sub-XY/", "reason": "no-match" }
+  ]
+}

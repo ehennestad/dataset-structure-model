@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+
+  "entityTypes": [
+    {
+      "name": "subject",
+      "description": "An experimental animal",
+      "isPrimary": true,
+      "identifierRef": "subject_id"
+    },
+    {
+      "name": "session",
+      "description": "One recording session; all of its files sit in the same folder as every other session's files",
+      "identifierRef": "session_id"
+    }
+  ],
+
+  "entityRelationships": [
+    {
+      "sourceEntity": "subject",
+      "targetEntity": "session",
+      "relationType": "oneToMany",
+      "relationName": "hasSessions"
+    }
+  ],
+
+  "metadataDefinitions": {
+    "subject_id": {
+      "name": "subject_id",
+      "title": "Subject ID",
+      "dataType": "string",
+      "ofEntity": "subject",
+      "validation": { "pattern": "^m\\d{3}$" }
+    },
+    "session_id": {
+      "name": "session_id",
+      "title": "Session ID",
+      "description": "Subject, date and running number, e.g. m110-20250510-001",
+      "dataType": "string",
+      "ofEntity": "session",
+      "validation": { "pattern": "^m\\d{3}-\\d{8}-\\d{3}$" }
+    },
+    "session_date": {
+      "name": "session_date",
+      "title": "Session date",
+      "dataType": "date",
+      "ofEntity": "session"
+    }
+  },
+
+  "dataLocations": [
+    {
+      "identifier": "recorded",
+      "displayName": "Recorded data (flat export)",
+      "description": "Every file of every session was exported into one folder. A file belongs to a session when its name starts with the session id.",
+      "dataCategory": "raw",
+      "access": "read",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [
+          {
+            "identifier": "lab-nas",
+            "path": "/Volumes/lab-nas/export",
+            "storageType": "network",
+            "environment": "mac-lab"
+          }
+        ],
+        "entityLayout": [
+          {
+            "name": "session-files",
+            "entityType": "session",
+            "fileSystemType": "file",
+            "matchPattern": "^m\\d{3}-\\d{8}-\\d{3}_.+$",
+            "excludePatterns": ["^\\..*"],
+            "filePatterns": [
+              {
+                "name": "raw_movie",
+                "pattern": "^{session_id}_raw\\.tif$",
+                "isRequired": true,
+                "cardinality": "one"
+              },
+              {
+                "name": "metadata",
+                "pattern": "^{session_id}_meta\\.json$",
+                "cardinality": "one"
+              },
+              {
+                "name": "behavior",
+                "pattern": "^{session_id}_behavior_\\d{2}\\.csv$",
+                "cardinality": "many"
+              }
+            ]
+          }
+        ],
+        "metadataMapping": [
+          {
+            "metadataRef": "session_id",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^(m\\d{3}-\\d{8}-\\d{3})_",
+              "entityLayoutLevel": "session-files"
+            }
+          },
+          {
+            "metadataRef": "subject_id",
+            "extraction": {
+              "method": "substring",
+              "pattern": "0:4",
+              "entityLayoutLevel": "session-files"
+            }
+          },
+          {
+            "metadataRef": "session_date",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^m\\d{3}-(\\d{8})-",
+              "valueFormat": "yyyyMMdd",
+              "entityLayoutLevel": "session-files"
+            }
+          }
+        ],
+        "pathTemplate": "{rootPath}/{session_id}_<kind>.<ext>"
+      }
+    }
+  ],
+
+  "preferences": {
+    "defaultDataLocationIdentifier": "recorded",
+    "environmentIdentifier": "mac-lab"
+  }
+}

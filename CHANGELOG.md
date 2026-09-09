@@ -13,7 +13,9 @@ Earlier drafts (from 2025-07-02; labelled `1.0.0` in their files but never tagge
 - `filesystem` source type, with `rootStoragePaths`, `entityLayout` and `metadataMapping` nested under `filesystemSource`
 - Extraction methods `substring`, `regex`, `template`, `fixed` and `function`
 - Declared entity identity, structural levels, file-level entities
-- `schema/EntityRecord.schema.json` — the object readers emit
+- `schema/EntityRecord.schema.json` — the object readers emit, with coded `issues` and empty `locations` for ancestors inferred from descendants
+- `schema/DirectoryListing.schema.json` — the directory snapshot readers walk
+- Conformance fixtures in `conformance/`: seven cases (folder hierarchy, flat session files, raw/processed matching, every extraction method, function extractors, two invalid configs) with the comparison rules in `docs/guides/conformance.md`
 
 ### Added (relative to the drafts)
 - `access` (`read` | `readwrite`, default `read`) on `dataLocation` — permission, separate from `dataCategory`
@@ -28,8 +30,8 @@ Earlier drafts (from 2025-07-02; labelled `1.0.0` in their files but never tagge
 - Defined `pathComponentTemplate` → `matchPattern` derivation (`validation.pattern` of the token's field, else `[^/\\]+`, anchored)
 - Defined `function` call contract: `extractorFunction` is a registry key; readers call `(fullPath, levelName, dataLocationIdentifier)`
 - Local overlay convention `<config>.local.json` for `preferences`
-- Examples `flat_session_files.json` and `raw_processed_two_photon.json`; expected entity records in `examples/entity-records/`
-- Tests: rejection cases for every constraint, cross-reference integrity, entity records, and validation of every complete JSON snippet in the docs
+- Examples `flat_session_files.json` and `raw_processed_two_photon.json`, mirrored by conformance cases
+- Tests: rejection cases for every constraint, cross-reference integrity, entity records, self-consistency of every conformance case, and validation of every complete JSON snippet in the docs
 - Reference pages `metadata-extraction.md` and `entity-record.md`
 
 ### Changed (relative to the drafts)

@@ -3,7 +3,11 @@
   "title": "EntityRecord",
   "description": "The interchange object a DatasetStructureModel reader emits for one discovered entity. Readers in any language produce the same records for the same config and directory tree; tools build entity tables from them.",
   "type": "object",
-  "required": ["entityType", "identity", "locations"],
+  "required": [
+    "entityType",
+    "identity",
+    "locations"
+  ],
   "additionalProperties": false,
   "properties": {
     "entityType": {
@@ -15,7 +19,11 @@
       "description": "The entity's own identity: the identifierRef (or every identifierRefs) field and its extracted value. Date, time and datetime values are ISO 8601 strings.",
       "minProperties": 1,
       "additionalProperties": {
-        "type": ["string", "number", "boolean"]
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
       }
     },
     "parents": {
@@ -23,7 +31,10 @@
       "description": "Identity of each entity-typed ancestor, outermost first. Structural levels do not appear. Together with identity this is the full key of the entity.",
       "items": {
         "type": "object",
-        "required": ["entityType", "identity"],
+        "required": [
+          "entityType",
+          "identity"
+        ],
         "additionalProperties": false,
         "properties": {
           "entityType": {
@@ -33,7 +44,11 @@
             "type": "object",
             "minProperties": 1,
             "additionalProperties": {
-              "type": ["string", "number", "boolean"]
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
             }
           }
         }
@@ -41,11 +56,14 @@
     },
     "locations": {
       "type": "array",
-      "description": "Where this entity was found. One entry per data location it appears in; an entity matched across locations has several.",
-      "minItems": 1,
+      "description": "Where this entity has a folder or files of its own: one entry per data location. An entity matched across locations has several entries. Empty for an entity that has no path of its own and was inferred from descendants (a subject whose id is read from session folder names in a location without subject folders).",
       "items": {
         "type": "object",
-        "required": ["dataLocationIdentifier", "rootStoragePathIdentifier", "paths"],
+        "required": [
+          "dataLocationIdentifier",
+          "rootStoragePathIdentifier",
+          "paths"
+        ],
         "additionalProperties": false,
         "properties": {
           "dataLocationIdentifier": {
@@ -58,21 +76,24 @@
           },
           "fileSystemType": {
             "type": "string",
-            "enum": ["folder", "file"],
+            "enum": [
+              "folder",
+              "file"
+            ],
             "default": "folder",
             "description": "Whether the entity is a folder or a set of files."
           },
           "paths": {
             "type": "array",
             "minItems": 1,
-            "description": "Paths relative to the root, '/'-separated. Exactly one folder path for a folder entity; one or more file paths for a file entity.",
+            "description": "Paths relative to the root, '/'-separated; folder paths end with '/'. One folder path for a folder entity (more only when duplicate-entity is reported); for a file entity, every file at the level whose extracted identity is this entity's, whether or not a filePatterns entry matches it.",
             "items": {
               "type": "string"
             }
           },
           "files": {
             "type": "object",
-            "description": "Files matched per named filePatterns entry: pattern name to relative file paths. Unnamed patterns are not reported here.",
+            "description": "Files matched per named filePatterns entry, after substituting the entity's metadata into {token} references: pattern name to sorted relative file paths (an empty array when nothing matched). For a folder entity the candidates are the direct children of the folder; for a file entity, its paths. Unnamed patterns are not reported. Present only when the level declares filePatterns.",
             "additionalProperties": {
               "type": "array",
               "items": {
@@ -82,21 +103,43 @@
           },
           "isComplete": {
             "type": "boolean",
-            "description": "true when every filePatterns entry with isRequired is matched."
+            "description": "true when every filePatterns entry with isRequired matched at least one file. Present only when the level declares filePatterns."
           }
         }
       }
     },
     "metadata": {
       "type": "object",
-      "description": "All extracted metadata fields for this entity (including the identity fields), keyed by metadataDefinitions key. Date, time and datetime values are ISO 8601 strings.",
+      "description": "Every field extracted for this entity (its own ofEntity fields, unioned across the locations it was found in) plus the identity fields of its entity-typed ancestors. Keyed by metadataDefinitions key. Date, time and datetime values are ISO 8601 strings. A field whose rule matched nothing takes the definition's defaultValue, else is absent.",
       "additionalProperties": true
     },
     "issues": {
       "type": "array",
-      "description": "Human-readable problems a reader found for this entity (a cardinality 'one' pattern matched several files, an extraction returned null, ...).",
+      "description": "Problems a reader found for this entity. Compared by code between readers; the message is free text.",
       "items": {
-        "type": "string"
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "missing-required-file",
+              "cardinality-violation",
+              "duplicate-entity",
+              "extraction-failed",
+              "metadata-conflict",
+              "validation-failed",
+              "unresolved-extractor"
+            ],
+            "description": "missing-required-file: an isRequired pattern matched nothing. cardinality-violation: a cardinality 'one' pattern matched several files. duplicate-entity: several folders in one location yield this identity. extraction-failed: a rule matched nothing and the field has no defaultValue. metadata-conflict: locations disagree on a field's value. validation-failed: a value violates its definition's validation. unresolved-extractor: a function rule's registry key is not implemented by this reader."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
       }
     }
   }

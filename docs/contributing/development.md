@@ -44,7 +44,8 @@ pytest tests/ -v
 | `test_schema_completeness.py` | Every `$ref` resolves; no unused definitions |
 | `test_examples.py` | Every example validates; documents that break the frozen-core rules are rejected |
 | `test_reference_integrity.py` | Cross-references in every example resolve (identity fields, `ofEntity`, level names, `derivedFrom`, template tokens) |
-| `test_entity_record.py` | `EntityRecord.schema.json` is valid and the example records validate |
+| `test_entity_record.py` | `EntityRecord.schema.json` and `DirectoryListing.schema.json` are valid; every expected record validates |
+| `test_conformance.py` | Every conformance case is self-consistent: config valid, paths exist, listing fully accounted for, extractions and file patterns re-evaluate to the expectation |
 | `test_docs_snippets.py` | Every complete JSON config embedded in `docs/` validates and is coherent |
 
 ---
@@ -82,7 +83,7 @@ Follow these steps whenever making changes to `schema/DatasetStructureModel.sche
 5. **Run `pytest tests/ -v`** — it must pass, including the docs-snippet test.
 6. **Update the reference pages** in `docs/reference/` for every changed property; `docs/reference/metadata-extraction.md` is the extraction contract.
 7. **Update `docs/guides/ai-agent-instructions.md`** — its complete example is validated by the tests, its rules are not; keep them in step.
-8. **Add or update examples** in `examples/` with a walkthrough in `docs/examples/`, and expected entity records in `examples/entity-records/` where the example demonstrates reader behaviour.
+8. **Add or update examples** in `examples/` with a walkthrough in `docs/examples/`, and a conformance case in `conformance/` for every rule readers must follow (see [Conformance Fixtures](../guides/conformance.md)).
 9. **Add a design-decisions entry** when the change encodes a rule readers must follow.
 
 ---
@@ -105,12 +106,13 @@ The `schemaVersion` field in config files is the schema version they were writte
 dataset-structure-model/
 ├── schema/
 │   ├── DatasetStructureModel.schema.json   ← the config schema (source of truth)
-│   └── EntityRecord.schema.json            ← what readers emit
+│   ├── EntityRecord.schema.json            ← what readers emit
+│   └── DirectoryListing.schema.json        ← what readers walk (conformance input)
 ├── examples/
 │   ├── flat_session_files.json
 │   ├── raw_processed_two_photon.json
-│   ├── sharebrain_toy_dataset.json
-│   └── entity-records/          # expected reader output for the examples
+│   └── sharebrain_toy_dataset.json
+├── conformance/                             ← one case per dir: config, listing, expected records
 ├── docs/                                    ← MkDocs documentation source
 │   ├── index.md
 │   ├── getting-started/

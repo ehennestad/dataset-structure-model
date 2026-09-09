@@ -1,6 +1,6 @@
 # Flat Session Files
 
-Source: [`examples/flat_session_files.json`](https://github.com/ehennestad/dataset-structure-model/blob/main/examples/flat_session_files.json). Expected output: [`examples/entity-records/flat_session_files.records.json`](https://github.com/ehennestad/dataset-structure-model/blob/main/examples/entity-records/flat_session_files.records.json).
+Source: [`examples/flat_session_files.json`](https://github.com/ehennestad/dataset-structure-model/blob/main/examples/flat_session_files.json). Expected reader output, with a listing: [`conformance/flat-session-files/`](https://github.com/ehennestad/dataset-structure-model/tree/main/conformance/flat-session-files).
 
 The layout that "one folder per session" models cannot describe: an acquisition system exported every file of every session into a single folder.
 
@@ -76,4 +76,4 @@ For `m110-20250510-001` the [entity record](../reference/entity-record.md) lists
 }
 ```
 
-A session with only a `_raw.tif` is still complete (`metadata` and `behavior` are not required) and its `files` entries for those patterns are empty arrays.
+A session with only a `_raw.tif` is still complete (`metadata` and `behavior` are not required) and its `files` entries for those patterns are empty arrays. A file that carries a session's id but matches no pattern (`_extra.bin`) is still in the session's `paths`. Subjects, which have no folder of their own here, get records with `locations: []`.

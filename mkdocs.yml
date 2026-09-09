@@ -74,6 +74,7 @@ nav:
       - Design Decisions: guides/design-decisions.md
       - For AI Agents: guides/ai-agent-instructions.md
       - Pipeline Integration: guides/pipeline-integration.md
+      - Conformance Fixtures: guides/conformance.md
   - Examples:
       - examples/index.md
       - Flat Session Files: examples/flat-session-files.md

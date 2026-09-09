@@ -1,0 +1,74 @@
+{
+  "records": [
+    {
+      "entityType": "subject",
+      "identity": { "subject_id": "m110" },
+      "parents": [],
+      "locations": [
+        { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["m110/"] }
+      ],
+      "metadata": { "subject_id": "m110" }
+    },
+    {
+      "entityType": "subject",
+      "identity": { "subject_id": "m220" },
+      "parents": [],
+      "locations": [
+        { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder", "paths": ["m220/"] }
+      ],
+      "metadata": { "subject_id": "m220" }
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "baseline" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "m110" } } ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder",
+          "paths": ["m110/20250523_baseline/"],
+          "files": { "movie": ["m110/20250523_baseline/movie.tif"], "notes": ["m110/20250523_baseline/notes.txt"] },
+          "isComplete": true
+        }
+      ],
+      "metadata": { "session_id": "baseline", "session_date": "2025-05-23", "subject_id": "m110" }
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "stim" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "m110" } } ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder",
+          "paths": ["m110/20250601_stim/"],
+          "files": { "movie": ["m110/20250601_stim/movie.tif", "m110/20250601_stim/movie_backup.tif"], "notes": [] },
+          "isComplete": true
+        }
+      ],
+      "metadata": { "session_id": "stim", "session_date": "2025-06-01", "subject_id": "m110" },
+      "issues": [ { "code": "cardinality-violation", "message": "pattern 'movie' expects one file, matched 2" } ]
+    },
+    {
+      "entityType": "session",
+      "identity": { "session_id": "baseline" },
+      "parents": [ { "entityType": "subject", "identity": { "subject_id": "m220" } } ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "fileSystemType": "folder",
+          "paths": ["m220/20250524_baseline/", "m220/20250524_baseline_copy/"],
+          "files": { "movie": [], "notes": ["m220/20250524_baseline/notes.txt"] },
+          "isComplete": false
+        }
+      ],
+      "metadata": { "session_id": "baseline", "session_date": "2025-05-24", "subject_id": "m220" },
+      "issues": [
+        { "code": "missing-required-file", "message": "pattern 'movie' is required, matched 0" },
+        { "code": "duplicate-entity", "message": "2 folders in 'raw' yield session_id 'baseline' under subject m220" }
+      ]
+    }
+  ],
+  "unmatched": [
+    { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "path": ".DS_Store", "reason": "excluded" },
+    { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "path": "m110/README.txt", "reason": "no-match" },
+    { "dataLocationIdentifier": "raw", "rootStoragePathIdentifier": "main", "path": "temp/", "reason": "excluded" }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DirectoryListing",
+  "description": "A snapshot of the directory trees under one or more root storage paths, used as reader input in conformance fixtures and dry runs. Paths are relative to their root and '/'-separated; directories end with '/'; every ancestor directory of an entry is itself listed; entries are unique and sorted.",
+  "type": "object",
+  "required": ["roots"],
+  "additionalProperties": false,
+  "properties": {
+    "environmentIdentifier": {
+      "type": "string",
+      "description": "The active environment while the listing was taken. Overrides preferences.environmentIdentifier from the config when present."
+    },
+    "roots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["dataLocationIdentifier", "rootStoragePathIdentifier", "entries"],
+        "additionalProperties": false,
+        "properties": {
+          "dataLocationIdentifier": {
+            "type": "string",
+            "description": "identifier of the data location this root belongs to."
+          },
+          "rootStoragePathIdentifier": {
+            "type": "string",
+            "description": "identifier of the rootStoragePath the entries were listed under."
+          },
+          "entries": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Relative paths under the root. A directory ends with '/'. No leading '/', no '.' or '..' segments.",
+            "items": {
+              "type": "string",
+              "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$)).+$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

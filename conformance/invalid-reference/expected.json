@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "reference-integrity",
+    "message": "The config validates against the schema but its cross-references do not resolve: identifierRef 'subject_code' is not a metadata field; extraction for 'subject_id' references unknown level 'nope'; derivedFrom 'ghost' is not a data location."
+  }
+}

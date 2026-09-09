@@ -14,7 +14,8 @@
 
 - **schema/**: `DatasetStructureModel.schema.json` (the config) and `EntityRecord.schema.json` (what readers emit)
 - **docs/**: Documentation (mkdocs site)
-- **examples/**: Example configurations, and the entity records a reader is expected to produce for them
+- **examples/**: Example configurations
+- **conformance/**: Fixtures a reader must pass — a config, a directory listing and the entity records to produce
 - **tests/**: Schema, example, cross-reference and docs-snippet tests (`pytest tests/`)
 
 ## Key Features
@@ -23,7 +24,7 @@
 - **Physical and Semantic Mapping**: Capture both the physical layout on disk and the semantic organization of data
 - **Metadata Extraction**: Define rules for extracting metadata from folder and file names, with one contract across languages
 - **File Grouping**: Describe which files belong to an entity, including folders where many entities' files are mixed together
-- **Defined Output**: Readers emit entity records — the same object from MATLAB or Python
+- **Defined Output**: Readers emit entity records — the same object from MATLAB or Python — and conformance fixtures check that they do
 - **Cross-environment Support**: Handle datasets distributed across multiple storage locations and computing environments
 - **Entity Relationships**: Define semantic relationships between different types of entities in your data
 - **Validation**: Ensure metadata values conform to expected formats and constraints

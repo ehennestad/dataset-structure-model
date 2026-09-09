@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    { "name": "subject", "identifierRef": "subject_code" }
+  ],
+  "metadataDefinitions": {
+    "subject_id": { "name": "subject_id", "dataType": "string", "ofEntity": "subject" }
+  },
+  "dataLocations": [
+    {
+      "identifier": "raw",
+      "displayName": "Raw",
+      "dataCategory": "raw",
+      "sourceType": "filesystem",
+      "derivedFrom": ["ghost"],
+      "filesystemSource": {
+        "rootStoragePaths": [ { "identifier": "main", "path": "/data/raw" } ],
+        "entityLayout": [
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^m\\d{3}$" }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "subject_id", "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "nope" } }
+        ]
+      }
+    }
+  ]
+}
