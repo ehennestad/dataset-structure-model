@@ -17,6 +17,7 @@
 - **examples/**: Example configurations
 - **conformance/**: Fixtures a reader must pass — a config, a directory listing and the entity records to produce
 - **src/python/dsm/**: The Python reference reader and `dsm` command (validate, listing, walk, compare, conformance)
+- **src/matlab/+dsm/**: The MATLAB reader (`addpath src/matlab`), passing the same conformance cases
 - **tests/**: Schema, example, cross-reference and docs-snippet tests (`pytest tests/`)
 
 ## Key Features
@@ -36,6 +37,13 @@
 pip install -e .
 dsm validate examples/flat_session_files.json
 dsm walk conformance/flat-session-files/config.json conformance/flat-session-files/listing.json
+```
+
+```matlab
+addpath("src/matlab")
+config = dsm.loadConfig("conformance/flat-session-files/config.json");
+result = dsm.walk(config, dsm.loadListing("conformance/flat-session-files/listing.json"));
+disp(dsm.renderReport(config, result))
 ```
 
 1. Read the [Quick Start](docs/getting-started/quickstart.md) and [Core Concepts](docs/getting-started/concepts.md)

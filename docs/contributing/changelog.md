@@ -16,6 +16,7 @@ Earlier drafts (from 2025-07-02; labelled `1.0.0` in their files but never tagge
 - `schema/EntityRecord.schema.json` — the object readers emit, with coded `issues` and empty `locations` for ancestors inferred from descendants
 - `schema/DirectoryListing.schema.json` — the directory snapshot readers walk
 - Python reference reader `dsm` (`src/python/dsm`, `pip install -e .`): `dsm validate`, `dsm listing`, `dsm walk` (dry run), `dsm compare`, `dsm conformance`; passes every conformance case
+- MATLAB reader `+dsm` (`src/matlab`, `addpath src/matlab`): `loadConfig` with a schema interpreter that reads the schema files, listings, `walk`, `compareResults`, `renderReport`, conformance runner and `exportActual` for the cross-language check; passes every conformance case on R2024b and R2025b
 - Conformance fixtures in `conformance/`: seven cases (folder hierarchy, flat session files, raw/processed matching, every extraction method, function extractors, two invalid configs) with the comparison rules in `docs/guides/conformance.md`
 
 ### Added (relative to the drafts)

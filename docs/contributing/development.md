@@ -22,6 +22,14 @@ pip install -r requirements-docs.txt
 
 `pytest tests/` also works without installing: the suite puts `src/python` on the path.
 
+**MATLAB reader** (R2021a+, no toolboxes):
+
+```bash
+matlab -nouserpath -batch "addpath('src/matlab'); runMatlabTests()"
+```
+
+`-nouserpath` keeps a personal `startup.m` out of the run. The cross-language check — MATLAB records judged by the Python comparator — is described in the [MATLAB API](../api/matlab.md#verifying-the-reader).
+
 ---
 
 ## Validating examples
@@ -50,6 +58,7 @@ pytest tests/ -v
 | `test_conformance.py` | Every conformance case is self-consistent: config valid, paths exist, listing fully accounted for, extractions and file patterns re-evaluate to the expectation (independent of the reader) |
 | `test_python_reader.py` | The Python reader passes every conformance case; extraction, listing, validation, comparison and CLI contracts |
 | `test_walker_rules.py` | Reader rules with no fixture case, on in-memory listings |
+| `src/matlab/tests/*.m` | The MATLAB reader: every conformance case, the extraction/listing/validation/comparison contracts, the walker rules |
 | `test_docs_snippets.py` | Every complete JSON config embedded in `docs/` validates and is coherent |
 
 ---
@@ -128,7 +137,7 @@ dataset-structure-model/
 ├── tests/                                   ← pytest test suite
 ├── src/
 │   ├── python/dsm/                          ← the Python reference reader (`dsm` command)
-│   └── matlab/                              ← MATLAB API (first pass on branch wip-matlab-api)
+│   └── matlab/+dsm/                         ← the MATLAB reader (tests in src/matlab/tests, runner runMatlabTests.m)
 ├── pyproject.toml
 ├── mkdocs.yml
 ├── requirements-docs.txt

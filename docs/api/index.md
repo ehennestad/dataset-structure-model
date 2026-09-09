@@ -16,11 +16,11 @@ Language-specific libraries for loading and working with Dataset Structure Model
 
     ---
 
-    MATLAB `classdef` hierarchy with typed properties, enum classes, and a `fromFile` constructor.
+    The `+dsm` package: `loadConfig`, listings, `walk`, `compareResults`, `renderReport`, and the conformance runner. `addpath src/matlab`.
 
     [:octicons-arrow-right-24: MATLAB API](matlab.md)
 
 </div>
 
 !!! info "Status"
-    The Python reader is the reference implementation and passes every [conformance case](../guides/conformance.md). The MATLAB API exists as a first pass on `wip-matlab-api`, written against the pre-freeze draft; it will be rebuilt against the same cases, and `dsm compare` checks its output without a second comparison implementation.
+    Both readers pass every [conformance case](../guides/conformance.md). The Python reader is the reference; the MATLAB reader's records are additionally checked with the Python comparator (`dsm compare`), so the two are known to agree on the interchange format. Neither is released on a package index yet.

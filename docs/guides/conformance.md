@@ -116,7 +116,7 @@ for each case in conformance/:
     compare(result, expected)                       # rules above
 ```
 
-The Python reader implements exactly this: `dsm conformance` runs every case and CI fails when one does not pass. A reader in another language does not need its own comparison code: write the records as JSON in the schema's shape and run `dsm compare expected.json actual.json`. See the [Python API](../api/python.md).
+The Python reader implements exactly this: `dsm conformance` runs every case and CI fails when one does not pass. The MATLAB reader does the same with `dsm.conformance.runCases()`, and `dsm.conformance.exportActual(dir)` writes its records so the Python comparator can judge them (`dsm compare expected.json <case>.actual.json`) — a reader in another language needs no comparison code of its own. See the [Python API](../api/python.md) and [MATLAB API](../api/matlab.md).
 
 The repository's own suite (`tests/test_conformance.py`) checks that every case is self-consistent — the config validates, every expected path exists in the listing, every listing entry is accounted for, and every declarative extraction and file pattern re-evaluates to the expectation. It is not a reader; it is what makes the expectations trustworthy before one exists.
 
