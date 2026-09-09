@@ -7,10 +7,7 @@ This example models a multi-site longitudinal clinical trial dataset with:
 - Three data locations: raw clinical data, imported normative reference data, and derived analysis results
 - `derivedFrom` linking the analysis results to both of its inputs
 - `pathComponentTemplate` on the derived location for output path generation
-- NIfTI + sidecar JSON `groupKey` co-occurrence constraint
 - `identifierRefs` on site and participant for composite cross-location matching
-
-Source file: [`examples/clinical_trial_example.json`](https://github.com/ehennestad/dataset-structure-model/blob/main/examples/clinical_trial_example.json)
 
 ---
 
@@ -76,36 +73,38 @@ Seven fields are defined globally:
                 └── MRI-T1_report.pdf        (qc)
 ```
 
-**File classes at the assessment level:**
+**File grouping patterns at the assessment level:**
 
-| Pattern | Role | Format | `groupKey` |
-|---------|------|--------|-----------|
-| `.*\.nii\.gz$` | `primary` | `application/x-nifti` | `nifti-pair` |
-| `.*\.json$` | `sidecar` | `application/json` | `nifti-pair` |
-| `.*_scores\.csv$` | `primary` | `text/csv` | — |
-| `.*_report\.pdf$` | `qc` | `application/pdf` | — |
+| Pattern | `isRequired` |
+|---------|-------------|
+| `.*\.nii\.gz$` | `false` |
+| `.*\.json$` | `false` |
+| `.*_scores\.csv$` | `false` |
+| `.*_report\.pdf$` | `false` |
 
-The NIfTI and JSON sidecar share `groupKey: "nifti-pair"` — they are expected to be present together. If one is missing, tools report the assessment as incomplete.
+All patterns are `isRequired: false` because different assessment types (imaging vs. blood draw vs. questionnaire) will have different files present. Tools can report an entity as incomplete only if a required pattern is absent.
 
-Note that some assessments (e.g. blood draw) will have no NIfTI file at all — `isRequired: false` on both NIfTI entries means this is valid.
-
-**Multi-environment paths:**
+**Multi-environment paths** (nested inside `filesystemSource`):
 
 ```json
-"rootStoragePaths": [
-  {
-    "identifier": "server-path",
-    "path": "/mnt/trial-data/raw",
-    "storageType": "network",
-    "environment": "analysis-server"
-  },
-  {
-    "identifier": "local-path",
-    "path": "C:\\TrialData\\Raw",
-    "storageType": "local",
-    "environment": "windows-site-workstation"
-  }
-]
+"sourceType": "filesystem",
+"filesystemSource": {
+  "rootStoragePaths": [
+    {
+      "identifier": "server-path",
+      "path": "/mnt/trial-data/raw",
+      "storageType": "network",
+      "environment": "analysis-server"
+    },
+    {
+      "identifier": "local-path",
+      "path": "C:\\TrialData\\Raw",
+      "storageType": "local",
+      "environment": "windows-site-workstation"
+    }
+  ],
+  "entityLayout": [ ... ]
+}
 ```
 
 ---
@@ -188,3 +187,4 @@ A pipeline writing outputs for participant `P001`, visit `V01` substitutes the m
 - **`pathComponentTemplate`** — enables pipeline tools to generate output paths from source entity metadata without hardcoding paths.
 - **`imported` category** — distinguishes externally sourced reference data from data produced in this study.
 - **`customProperties`** — free-form tool-specific metadata that the DSM schema does not constrain.
+- **`sourceType: "filesystem"`** — all data locations in this example are filesystem sources, with their `rootStoragePaths` and `entityLayout` nested inside `filesystemSource`.

@@ -6,9 +6,7 @@ This example models a two-photon calcium imaging dataset with:
 - Two data locations: raw acquisitions and motion-corrected processed data
 - Multi-environment root storage paths (Windows lab PC + Mac analysis workstation)
 - Cross-location entity matching via `identifierRef`
-- File classes with `role`, `format`, `groupKey`, and sidecar metadata extractors
-
-Source file: [`examples/neuroscience_dataset_example.json`](https://github.com/ehennestad/dataset-structure-model/blob/main/examples/neuroscience_dataset_example.json)
+- File grouping patterns with `isRequired` completeness checks
 
 ---
 
@@ -66,7 +64,7 @@ Six metadata fields are defined globally, covering all three entity levels:
 | `imaging_depth` | recording | number | Unit: µm; range 0–1000 |
 | `frame_rate` | recording | number | Unit: Hz |
 
-`imaging_depth` and `frame_rate` are extracted from the sidecar metadata JSON file, not from folder names, via a `metadataExtractors` function.
+`imaging_depth` and `frame_rate` are extracted from the sidecar metadata JSON file using the `sidecar` extraction method in `metadataMapping`.
 
 ---
 
@@ -83,56 +81,43 @@ D:\Data\TwoPhoton\
             └── 20240315_m110_baseline_run001_metadata.json  (sidecar)
 ```
 
-**Root storage paths** — two environments:
+**Root storage paths** — two environments (nested inside `filesystemSource`):
 
 ```json
-"rootStoragePaths": [
-  {
-    "identifier": "lab-windows-path",
-    "path": "D:\\Data\\TwoPhoton",
-    "storageType": "local",
-    "environment": "windows-lab",
-    "priority": 1
-  },
-  {
-    "identifier": "analysis-mac-path",
-    "path": "/Volumes/DataDrive/TwoPhoton",
-    "storageType": "external",
-    "environment": "mac-analysis",
-    "priority": 1
-  }
-]
+"sourceType": "filesystem",
+"filesystemSource": {
+  "rootStoragePaths": [
+    {
+      "identifier": "lab-windows-path",
+      "path": "D:\\Data\\TwoPhoton",
+      "storageType": "local",
+      "environment": "windows-lab",
+      "priority": 1
+    },
+    {
+      "identifier": "analysis-mac-path",
+      "path": "/Volumes/DataDrive/TwoPhoton",
+      "storageType": "external",
+      "environment": "mac-analysis",
+      "priority": 1
+    }
+  ],
+  "entityLayout": [ ... ]
+}
 ```
 
 Tools select the path whose `environment` matches `preferences.environmentIdentifier`.
 
-**File classes at the recording level:**
+**File grouping patterns at the recording level:**
 
 ```json
 "filePatterns": [
-  {
-    "pattern": ".*\\.tif$",
-    "role": "primary",
-    "format": "image/tiff",
-    "description": "Raw calcium imaging frames, 16-bit single-channel",
-    "isRequired": true,
-    "groupKey": "imaging-data"
-  },
-  {
-    "pattern": ".*_metadata\\.json$",
-    "role": "sidecar",
-    "format": "application/json",
-    "description": "Acquisition parameters: frame rate, imaging depth, laser power, PMT settings",
-    "isRequired": false,
-    "groupKey": "imaging-data",
-    "metadataExtractors": [
-      { "method": "function", "extractorFunction": "extractImagingParameters" }
-    ]
-  }
+  { "pattern": ".*\\.tif$",            "isRequired": true  },
+  { "pattern": ".*_metadata\\.json$",  "isRequired": false }
 ]
 ```
 
-Both files share `groupKey: "imaging-data"` — they are expected to co-occur. If the `.tif` is present without its sidecar JSON, tools can report the recording as incomplete.
+The `.tif` is marked `isRequired: true` — if it is absent, tools can report the recording as incomplete.
 
 **Metadata mapping** — extracted from folder names:
 

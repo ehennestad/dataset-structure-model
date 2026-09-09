@@ -1,0 +1,239 @@
+{
+  "schemaVersion": "1.0.0",
+
+  "entityTypes": [
+    {
+      "name": "subject",
+      "description": "An experimental animal",
+      "isPrimary": true,
+      "identifierRef": "subject_id"
+    },
+    {
+      "name": "session",
+      "description": "A single experimental day for one subject, identified by date, subject, protocol, and day index"
+    },
+    {
+      "name": "recording",
+      "description": "A single acquisition run within a session, identified by start date-time"
+    },
+    {
+      "name": "trial",
+      "description": "A single experimental trial within a recording"
+    }
+  ],
+
+  "entityRelationships": [
+    {
+      "sourceEntity": "subject",
+      "targetEntity": "session",
+      "relationType": "oneToMany",
+      "relationName": "hasSessions",
+      "description": "A subject undergoes multiple sessions across experimental days"
+    },
+    {
+      "sourceEntity": "session",
+      "targetEntity": "recording",
+      "relationType": "oneToMany",
+      "relationName": "hasRecordings",
+      "description": "A session may contain one or more recording runs"
+    },
+    {
+      "sourceEntity": "recording",
+      "targetEntity": "trial",
+      "relationType": "oneToMany",
+      "relationName": "hasTrials",
+      "description": "A recording run is divided into sequentially numbered trials"
+    }
+  ],
+
+  "metadataDefinitions": {
+    "subject_id": {
+      "name": "subject_id",
+      "title": "Subject ID",
+      "description": "Unique identifier for the experimental animal (e.g., 'MelFibra#03')",
+      "dataType": "string",
+      "ofEntity": "subject"
+    },
+    "session_date": {
+      "name": "session_date",
+      "title": "Session Date",
+      "description": "Date of the experimental session encoded in the session folder name",
+      "dataType": "date",
+      "ofEntity": "session"
+    },
+    "protocol": {
+      "name": "protocol",
+      "title": "Protocol",
+      "description": "Experimental protocol label embedded in the session folder name (e.g., 'Bilateral_Opto', 'Bilateral_Ctr')",
+      "dataType": "string",
+      "ofEntity": "session"
+    },
+    "day_number": {
+      "name": "day_number",
+      "title": "Day Number",
+      "description": "0-based experimental day index, used to track longitudinal progression",
+      "dataType": "integer",
+      "ofEntity": "session"
+    },
+    "recording_datetime": {
+      "name": "recording_datetime",
+      "title": "Recording Date-Time",
+      "description": "Date and time when the recording run started, encoded in the recording folder name",
+      "dataType": "datetime",
+      "ofEntity": "recording"
+    },
+    "trial_number": {
+      "name": "trial_number",
+      "title": "Trial Number",
+      "description": "1-based sequential index of the trial within the recording",
+      "dataType": "integer",
+      "ofEntity": "trial"
+    }
+  },
+
+  "dataLocations": [
+    {
+      "identifier": "raw",
+      "displayName": "Raw Data",
+      "description": "Raw acquired data from the SHAREbrain setup (Begonia software)",
+      "dataCategory": "raw",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+      "rootStoragePaths": [
+        {
+          "identifier": "data-hd-mac",
+          "path": "/Volumes/Data HD/Data/SHAREbrain/Luca_Toy_Dataset",
+          "volumeName": "Data HD",
+          "storageType": "external",
+          "environment": "mac-lab"
+        }
+      ],
+      "entityLayout": [
+        {
+          "name": "sessions",
+          "entityType": "session",
+          "fileSystemType": "folder",
+          "pathComponentTemplate": "{session_date}_{subject_id}_{protocol}_Day{day_number}",
+          "matchPattern": "^\\d{8}_[A-Za-z0-9#]+_[A-Za-z0-9_]+_Day\\d{2}$",
+          "filePatterns": [
+            {
+              "pattern": "^Log\\.csv$",
+              "isRequired": false
+            }
+          ]
+        },
+        {
+          "name": "recordings",
+          "entityType": "recording",
+          "fileSystemType": "folder",
+          "pathComponentTemplate": "{recording_datetime}",
+          "matchPattern": "^\\d{4}-\\d{2}-\\d{2}_\\d{6}$",
+          "filePatterns": [
+            {
+              "pattern": "^Log\\.csv$",
+              "isRequired": false
+            }
+          ]
+        },
+        {
+          "name": "trials",
+          "entityType": "trial",
+          "fileSystemType": "folder",
+          "pathComponentTemplate": "trial_{trial_number}",
+          "matchPattern": "^trial_\\d{3}$",
+          "excludePatterns": ["^Preflight trial dir$"],
+          "filePatterns": [
+            {
+              "pattern": "^eeg_4_ch\\.csv$",
+              "isRequired": true
+            },
+            {
+              "pattern": "^Diode\\.csv$",
+              "isRequired": false
+            },
+            {
+              "pattern": "^Wheel\\.csv$",
+              "isRequired": false
+            },
+            {
+              "pattern": "^camera_time\\.csv$",
+              "isRequired": false
+            },
+            {
+              "pattern": "^Logpart\\.csv$",
+              "isRequired": false
+            },
+            {
+              "pattern": "^Notes\\.txt$",
+              "isRequired": false
+            },
+            {
+              "pattern": "^uuid\\.begonia$",
+              "isRequired": false
+            }
+          ]
+        }
+      ],
+      "metadataMapping": [
+        {
+          "metadataRef": "subject_id",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^\\d{8}_([A-Za-z0-9#]+)_[A-Za-z0-9_]+_Day\\d+$",
+            "entityLayoutLevel": 0
+          }
+        },
+        {
+          "metadataRef": "session_date",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^(\\d{8})_",
+            "valueFormat": "yyyyMMdd",
+            "entityLayoutLevel": 0
+          }
+        },
+        {
+          "metadataRef": "protocol",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^\\d{8}_[A-Za-z0-9#]+_([A-Za-z0-9_]+)_Day\\d+$",
+            "entityLayoutLevel": 0
+          }
+        },
+        {
+          "metadataRef": "day_number",
+          "extraction": {
+            "method": "regex",
+            "pattern": "Day(\\d+)$",
+            "entityLayoutLevel": 0
+          }
+        },
+        {
+          "metadataRef": "recording_datetime",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^(\\d{4}-\\d{2}-\\d{2}_\\d{6})$",
+            "valueFormat": "yyyy-MM-dd_HHmmss",
+            "entityLayoutLevel": 1
+          }
+        },
+        {
+          "metadataRef": "trial_number",
+          "extraction": {
+            "method": "regex",
+            "pattern": "^trial_(\\d{3})$",
+            "entityLayoutLevel": 2
+          }
+        }
+      ],
+      "additionalFolders": ["metadata"],
+      "pathTemplate": "{rootPath}/{session_date}_{subject_id}_{protocol}_Day{day_number}/{recording_datetime}/trial_{trial_number}"
+      }
+    }
+  ],
+
+  "preferences": {
+    "defaultDataLocationIdentifier": "raw",
+    "environmentIdentifier": "mac-lab"
+  }
+}
