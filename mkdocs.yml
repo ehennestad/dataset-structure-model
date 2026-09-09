@@ -72,6 +72,7 @@ nav:
       - Usage Guide: guides/usage-guide.md
       - Data Location Categories: guides/data-location-categories.md
       - Design Decisions: guides/design-decisions.md
+      - Related Work: guides/related-work.md
       - For AI Agents: guides/ai-agent-instructions.md
       - Pipeline Integration: guides/pipeline-integration.md
       - Conformance Fixtures: guides/conformance.md

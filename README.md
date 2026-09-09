@@ -38,6 +38,8 @@ What comes out is defined too: an [entity record](docs/reference/entity-record.m
 - Not a pipeline definition: it records provenance between stores, not processing steps.
 - Not a database: the entity tables are views, unless a consumer chooses to persist them.
 
+Every mechanism here exists somewhere already — regex extraction of entities from paths (pybids, NeuroConv), path templates driven by metadata (PEP, Snakemake), attributes encoded in directory names (Hive-style partitioning). [Related Work](docs/guides/related-work.md) sets out where each stops, and when to use one of them instead of this.
+
 ## Repository contents
 
 | Path | Contents |

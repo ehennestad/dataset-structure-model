@@ -92,6 +92,10 @@ Without a formal description, every tool hardcodes assumptions about folder stru
 
 ---
 
-## No equivalent standard exists
+## How this relates to existing tools
 
-DSM fills a gap in the scientific data management ecosystem. Existing standards are either prescriptive (you must reorganise your data to conform) or focused on tabular/file-level metadata rather than folder hierarchy and entity semantics. See the [Design Decisions](guides/design-decisions.md) guide for details.
+Almost every mechanism in DSM exists somewhere already — entities pulled out of paths by regex (pybids, NeuroConv), `{token}` templates that build a path from metadata (PEP, Snakemake), attributes read from directory names (Hive-style partitioning), portable dataset descriptions (Frictionless, RO-Crate), entity tables for neuroscience (DataJoint).
+
+What we have not found in one artefact is the combination: a description that is **descriptive** (it never asks you to reorganise), **bidirectional** (the same rules parse a location and generate one), **cross-store** (identity declares when two differently-named folders are the same entity), and **portable** (readers in different languages provably agree, via a defined output object and conformance fixtures).
+
+[Related Work](guides/related-work.md) sets out where each neighbouring tool stops, and when you should use one of them instead. [Design Decisions](guides/design-decisions.md) explains the choices inside the schema.
