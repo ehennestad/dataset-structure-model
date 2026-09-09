@@ -1,5 +1,8 @@
 # MATLAB API
 
+!!! warning "Status: first pass on branch `wip-matlab-api`, written against the pre-freeze draft"
+    Not released. The package described below predates the 1.0.0 freeze and targets an example file that no longer exists. Before it can read 1.0.0 configs it needs: the `FileGroupingPattern` shape reduced to `pattern`/`name`/`isRequired`/`cardinality`; `access`, `uuid` and `customProperties`; structural levels (`EntityType` may be empty); Python-slice conversion for `substring`; an extractor registry for `function`; level lookup by name only (the 0-based numeric form goes); and emission of [entity records](../reference/entity-record.md). It will be rebuilt against the conformance fixtures rather than patched.
+
 A MATLAB package for loading and working with Dataset Structure Model configurations.
 Requires **MATLAB R2021b** or later.
 

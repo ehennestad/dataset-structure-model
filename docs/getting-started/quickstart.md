@@ -1,31 +1,38 @@
 # Quick Start
 
-This guide walks you through creating a minimal valid DSM config and validating it.
+Create a minimal valid DSM config and validate it.
 
 ## Prerequisites
 
 - A text editor
-- Python 3.8+ with `jsonschema` installed (for validation):
+- Python 3.9+ with `jsonschema` (for validation):
 
 ```bash
 pip install jsonschema
 ```
 
-## Step 1: Download the schema
-
-```bash
-curl -O https://raw.githubusercontent.com/ehennestad/dataset-structure-model/main/schema/DatasetStructureModel.schema.json
-```
-
-Or clone the repository:
+## Step 1: Get the schema
 
 ```bash
 git clone https://github.com/ehennestad/dataset-structure-model.git
 ```
 
-## Step 2: Create a minimal config
+The schema is `schema/DatasetStructureModel.schema.json`.
 
-Create a file `my-dataset.json`:
+## Step 2: Describe your data
+
+Suppose your data looks like this:
+
+```
+/data/raw/
+├── m110/                    ← subject folder
+│   ├── 20250523_session1/   ← session folder
+│   └── 20250601_session2/
+└── m220/
+    └── 20250524_session1/
+```
+
+Create `my-dataset.json`:
 
 ```json
 {
@@ -35,81 +42,37 @@ Create a file `my-dataset.json`:
     { "name": "session", "identifierRef": "session_id" }
   ],
   "metadataDefinitions": {
-    "subject_id": {
-      "name": "Subject ID",
-      "ofEntity": "subject",
-      "dataType": "string"
-    },
-    "session_id": {
-      "name": "Session ID",
-      "ofEntity": "session",
-      "dataType": "string"
-    }
+    "subject_id": { "name": "subject_id", "title": "Subject ID", "ofEntity": "subject", "dataType": "string", "validation": { "pattern": "^m\\d{3}$" } },
+    "session_id": { "name": "session_id", "title": "Session ID", "ofEntity": "session", "dataType": "string" },
+    "session_date": { "name": "session_date", "title": "Session date", "ofEntity": "session", "dataType": "date" }
   },
   "dataLocations": [
     {
-      "identifier": "raw-data",
-      "displayName": "Raw Data",
+      "identifier": "raw",
+      "displayName": "Raw data",
       "dataCategory": "raw",
+      "access": "read",
       "sourceType": "filesystem",
       "filesystemSource": {
         "rootStoragePaths": [
-          {
-            "identifier": "my-machine",
-            "path": "/data/raw",
-            "environment": "my-machine"
-          }
+          { "identifier": "my-machine", "path": "/data/raw" }
         ],
         "entityLayout": [
-          {
-            "name": "subjects",
-            "entityType": "subject",
-            "matchPattern": "^[A-Za-z0-9]+$"
-          },
-          {
-            "name": "sessions",
-            "entityType": "session",
-            "matchPattern": "^\\d{8}_.*$"
-          }
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^m\\d{3}$" },
+          { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{8}_.+$" }
         ],
         "metadataMapping": [
-          {
-            "metadataRef": "subject_id",
-            "extraction": {
-              "method": "substring",
-              "pattern": "0:end",
-              "entityLayoutLevel": 0
-            }
-          },
-          {
-            "metadataRef": "session_id",
-            "extraction": {
-              "method": "regex",
-              "pattern": "^\\d{8}_(.+)$",
-              "entityLayoutLevel": 1
-            }
-          }
+          { "metadataRef": "subject_id",   "extraction": { "method": "substring", "pattern": ":",   "entityLayoutLevel": "subjects" } },
+          { "metadataRef": "session_id",   "extraction": { "method": "regex",     "pattern": "^\\d{8}_(.+)$", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_date", "extraction": { "method": "substring", "pattern": "0:8", "valueFormat": "yyyyMMdd", "entityLayoutLevel": "sessions" } }
         ]
       }
     }
-  ],
-  "preferences": {
-    "defaultDataLocationIdentifier": "raw-data",
-    "environmentIdentifier": "my-machine"
-  }
+  ]
 }
 ```
 
-This config describes a dataset with two hierarchy levels:
-
-```
-/data/raw/
-├── m110/              ← subject folder (matched by subject matchPattern)
-│   ├── 20250523_session1/   ← session folder (matched by session matchPattern)
-│   └── 20250601_session2/
-└── m220/
-    └── 20250524_session1/
-```
+Reading it top to bottom: two entity types, each identified by a metadata field; three fields; one data location whose root is `/data/raw`, with subject folders at the first level and session folders at the second; and three rules that read the fields out of the folder names. There is no `preferences` block — that is per-machine and goes in a local overlay when you need one.
 
 ## Step 3: Validate
 
@@ -117,15 +80,13 @@ This config describes a dataset with two hierarchy levels:
 python -m jsonschema -i my-dataset.json schema/DatasetStructureModel.schema.json
 ```
 
-No output means the config is valid. Any errors will describe exactly what is wrong and where.
+No output means the config is valid.
 
 ## Step 4: Add more detail
 
-From here you can:
+- Add a processed location with [`derivedFrom`](../reference/data-locations.md#derivedfrom), `access: readwrite` and [`pathComponentTemplate`](../reference/entity-layout.md#pathcomponenttemplate)
+- Describe the files inside each session with [`filePatterns`](../reference/entity-layout.md#filepatterns)
+- Handle a folder where all sessions' files are mixed together with a [file level](../reference/entity-layout.md#filesystemtype)
+- Add [environment-specific root paths](../reference/data-locations.md#filesystemsource)
 
-- Add a second data location for processed data with [`derivedFrom`](../reference/data-locations.md#derivedfrom)
-- Describe the files inside each entity folder using [`filePatterns`](../reference/entity-layout.md#filepatterns)
-- Declare entity relationships in [`entityRelationships`](../reference/entity-relationships.md)
-- Add environment-specific paths for your lab workstation and analysis server
-
-See the [Neuroscience Dataset example](../examples/neuroscience.md) for a complete real-world config, or the [Usage Guide](../guides/usage-guide.md) for detailed walkthroughs of each feature.
+Then read the [examples](../examples/index.md) or the [Usage Guide](../guides/usage-guide.md).

@@ -1,47 +1,42 @@
 # preferences
 
-`preferences` is a required top-level object that provides runtime context. It answers two questions: which computing environment is currently active, and which data location should be used when none is explicitly specified.
+`preferences` is an optional top-level object holding runtime context: which computing environment is active and which data location to use when none is specified.
 
 `additionalProperties` is `false`.
 
 ## Fields
 
-### `environmentIdentifier` *(required)*
+### `environmentIdentifier`
 
 | | |
 |--|--|
 | Type | `string` |
 | Example | `"windows-lab"`, `"mac-analysis"`, `"hpc-cluster"` |
 
-Identifies the current computing environment. Tools use this to select the correct `rootStoragePath` from each data location's `rootStoragePaths` array — choosing the entry whose `environment` field matches this value.
+Selects, in every data location, the `rootStoragePath` whose `environment` matches. Not needed when the config is used on one environment and its root paths carry no `environment`.
 
-This field is the bridge between the multi-environment path declarations in `rootStoragePaths` and the single active environment at runtime. Change this value when moving the same config to a different machine.
-
----
-
-### `defaultDataLocationIdentifier` *(required)*
+### `defaultDataLocationIdentifier`
 
 | | |
 |--|--|
 | Type | `string` |
 
-The `identifier` of the data location to use when a tool does not specify which location to operate on. Must match the `identifier` of one of the entries in `dataLocations`.
+The location a tool operates on when not told otherwise. Must be a `dataLocations` identifier.
 
----
+## The local overlay
 
-## Example
+These values describe a machine or a user session, not the dataset, and they change from checkout to checkout. Keeping them only in a shared, version-controlled config makes every machine fight over the same line. So:
+
+- `preferences` may be omitted from the shared config.
+- A reader that finds a file named **`<config basename>.local.json`** next to the config takes `preferences` from it in preference to the shared one. The overlay is a JSON object with a `preferences` key and nothing else, and it is meant to be git-ignored.
 
 ```json
-"preferences": {
-  "defaultDataLocationIdentifier": "two-photon-calcium-imaging",
-  "environmentIdentifier": "windows-lab"
+{
+  "preferences": {
+    "defaultDataLocationIdentifier": "processed",
+    "environmentIdentifier": "mac-analysis"
+  }
 }
 ```
 
-With this config, a tool that asks "give me the root path for the default location" will look up `two-photon-calcium-imaging`, find its `rootStoragePaths`, and select the entry with `"environment": "windows-lab"`.
-
----
-
-## Design note
-
-`preferences` represents instance-level state (the active environment for a specific installation or user session) rather than the dataset's structure itself. It is included in the config file rather than a separate settings file to keep DSM configs self-contained: a single JSON file is sufficient to fully describe both the dataset and the context in which it should be interpreted.
+Whether a root path is currently reachable is runtime state as well; readers report it, the config does not store it.

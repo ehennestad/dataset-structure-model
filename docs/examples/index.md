@@ -1,32 +1,41 @@
 # Examples
 
-Complete, annotated Dataset Structure Model configurations for real-world dataset types.
+Complete configurations, each validated against the schema by the test suite. The JSON files are in [`examples/`](https://github.com/ehennestad/dataset-structure-model/tree/main/examples).
 
 <div class="grid cards" markdown>
 
--   :material-microscope: **Neuroscience Dataset**
+-   :material-file-tree: **Flat Session Files**
 
     ---
 
-    Two-photon calcium imaging with raw and processed data locations, multi-environment paths, and cross-location entity matching.
+    Every session's files exported into one folder. A `file` level groups them into sessions by identity, with `{session_id}` tokens in the file patterns.
 
-    [:octicons-arrow-right-24: Read the walkthrough](neuroscience.md)
+    [:octicons-arrow-right-24: Walkthrough](flat-session-files.md)
 
--   :material-hospital-box: **Clinical Trial Dataset**
+-   :material-source-branch: **Raw and Processed Two-Photon**
 
     ---
 
-    Four-level hierarchy (site → participant → visit → assessment) with imported demographic data, derived analysis results, and composite entity matching.
+    Raw data under `{date}/{session}`, processed data under `{subject}/{session}`: structural levels, cross-location matching, generated folder names, `access` and `uuid`.
 
-    [:octicons-arrow-right-24: Read the walkthrough](clinical-trial.md)
+    [:octicons-arrow-right-24: Walkthrough](raw-processed-two-photon.md)
+
+-   :material-brain: **SHAREbrain Toy Dataset**
+
+    ---
+
+    Session → recording → trial with a composite session identity and the subject identified from the session folder name.
+
+    [:octicons-arrow-right-24: Walkthrough](sharebrain.md)
 
 </div>
 
 ---
 
-The JSON source files for all examples are in the [`examples/`](https://github.com/ehennestad/dataset-structure-model/tree/main/examples) directory of the repository and can be validated against the schema:
+Validate any of them:
 
 ```bash
-python -m jsonschema -i examples/neuroscience_dataset_example.json schema/DatasetStructureModel.schema.json
-python -m jsonschema -i examples/clinical_trial_example.json schema/DatasetStructureModel.schema.json
+python -m jsonschema -i examples/flat_session_files.json schema/DatasetStructureModel.schema.json
 ```
+
+`examples/entity-records/` holds the [entity records](../reference/entity-record.md) a reader is expected to produce for the flat-files example.

@@ -23,4 +23,4 @@ Language-specific libraries for loading and working with Dataset Structure Model
 </div>
 
 !!! info "Status"
-    Both APIs are under active development. Subscribe to the [GitHub repository](https://github.com/ehennestad/dataset-structure-model) to be notified of releases.
+    Neither API is released. Both exist as first passes on `wip-*` branches written against the pre-freeze draft and will be brought to 1.0.0 against a shared set of conformance fixtures (directory listings plus the [entity records](../reference/entity-record.md) a reader must produce), so that the MATLAB and Python readers are checked against the same expectations.

@@ -12,24 +12,28 @@
 
 ## Repository Contents
 
-- **schema/**: JSON Schema definition for the Dataset Structure Model
-- **docs/**: Documentation for using the model
-- **examples/**: Example configurations for different types of datasets
+- **schema/**: `DatasetStructureModel.schema.json` (the config) and `EntityRecord.schema.json` (what readers emit)
+- **docs/**: Documentation (mkdocs site)
+- **examples/**: Example configurations, and the entity records a reader is expected to produce for them
+- **tests/**: Schema, example, cross-reference and docs-snippet tests (`pytest tests/`)
 
 ## Key Features
 
 - **Standardized Dataset Description**: Define the structure of scientific datasets in a consistent, machine-readable format
 - **Physical and Semantic Mapping**: Capture both the physical layout on disk and the semantic organization of data
-- **Metadata Extraction**: Define rules for extracting metadata from file paths and names
+- **Metadata Extraction**: Define rules for extracting metadata from folder and file names, with one contract across languages
+- **File Grouping**: Describe which files belong to an entity, including folders where many entities' files are mixed together
+- **Defined Output**: Readers emit entity records — the same object from MATLAB or Python
 - **Cross-environment Support**: Handle datasets distributed across multiple storage locations and computing environments
 - **Entity Relationships**: Define semantic relationships between different types of entities in your data
 - **Validation**: Ensure metadata values conform to expected formats and constraints
 
 ## Getting Started
 
-1. Review the [Schema Usage Guide](docs/schema_usage_guide.md) to understand the key concepts
-2. Explore the [example configurations](examples/) to see how the model can be applied to different types of datasets
-3. Learn about the different [data location categories](docs/data_location_categories.md) and how they're used in the model
+1. Read the [Quick Start](docs/getting-started/quickstart.md) and [Core Concepts](docs/getting-started/concepts.md)
+2. Work through the [Usage Guide](docs/guides/usage-guide.md)
+3. Look at the [example configurations](examples/) — a flat folder of session files, raw and processed two-photon data, a toy dataset
+4. See the [Schema Reference](docs/reference/index.md); [Metadata Extraction](docs/reference/metadata-extraction.md) and [Entity Record](docs/reference/entity-record.md) are the parts readers implement
 
 ## Example Use Cases
 
@@ -60,7 +64,7 @@ The model supports data processing workflows where:
 
 ## Schema Evolution
 
-The Dataset Structure Model uses semantic versioning to track changes to the schema. The current version is 1.0.0.
+The Dataset Structure Model uses semantic versioning. The current version is **1.0.0**, the frozen core: the `filesystem` source type, the extraction methods `substring`, `regex`, `template`, `fixed` and `function`, declared entity identity, file-level entities and the entity record. Blocks marked DRAFT in the schema (`spreadsheet`, `database`, `api` sources; `sidecar` extraction) may change without a major version bump. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

@@ -27,17 +27,25 @@ pip install -r requirements-test.txt
 To check that an example file is valid against the schema:
 
 ```bash
-python -m jsonschema -i examples/neuroscience_dataset_example.json schema/DatasetStructureModel.schema.json
-python -m jsonschema -i examples/clinical_trial_example.json schema/DatasetStructureModel.schema.json
+python -m jsonschema -i examples/flat_session_files.json schema/DatasetStructureModel.schema.json
 ```
 
 A zero exit code means the file is valid.
 
-To run the full test suite:
+The test suite does more than schema validation:
 
 ```bash
 pytest tests/ -v
 ```
+
+| Test file | Checks |
+|-----------|--------|
+| `test_schema_validity.py` | The schema is valid draft-07 |
+| `test_schema_completeness.py` | Every `$ref` resolves; no unused definitions |
+| `test_examples.py` | Every example validates; documents that break the frozen-core rules are rejected |
+| `test_reference_integrity.py` | Cross-references in every example resolve (identity fields, `ofEntity`, level names, `derivedFrom`, template tokens) |
+| `test_entity_record.py` | `EntityRecord.schema.json` is valid and the example records validate |
+| `test_docs_snippets.py` | Every complete JSON config embedded in `docs/` validates and is coherent |
 
 ---
 
@@ -67,13 +75,15 @@ The built site is written to `site/` (git-ignored).
 
 Follow these steps whenever making changes to `schema/DatasetStructureModel.schema.json`:
 
-1. **Update the schema** — make your changes to `schema/DatasetStructureModel.schema.json`.
-2. **Bump `schemaVersion`** in all example files if the change is breaking.
-3. **Add a CHANGELOG entry** — add the change under `## [Unreleased]` in `CHANGELOG.md`.
-4. **Run validation** — `pytest tests/ -v` must pass.
-5. **Update affected reference pages** — update `docs/reference/` pages that document the changed properties.
-6. **Update the AI agent instructions** — if enum values, required fields, or `additionalProperties` rules changed, update `docs/guides/ai-agent-instructions.md`.
-7. **If new examples are needed**, create them in `examples/` and add an annotated walkthrough in `docs/examples/`.
+1. **A field enters the frozen core only when a reader consumes it.** Otherwise mark it DRAFT in its description.
+2. **Update the schema** — `schema/DatasetStructureModel.schema.json`, and `schema/EntityRecord.schema.json` if the output changes.
+3. **Bump `schemaVersion`** in all example files if the change is breaking.
+4. **Add a CHANGELOG entry** under `## [Unreleased]` in `CHANGELOG.md`.
+5. **Run `pytest tests/ -v`** — it must pass, including the docs-snippet test.
+6. **Update the reference pages** in `docs/reference/` for every changed property; `docs/reference/metadata-extraction.md` is the extraction contract.
+7. **Update `docs/guides/ai-agent-instructions.md`** — its complete example is validated by the tests, its rules are not; keep them in step.
+8. **Add or update examples** in `examples/` with a walkthrough in `docs/examples/`, and expected entity records in `examples/entity-records/` where the example demonstrates reader behaviour.
+9. **Add a design-decisions entry** when the change encodes a rule readers must follow.
 
 ---
 
@@ -85,7 +95,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 - **Minor** (`1.x.0`) — additive schema changes: new optional fields, new enum values. Existing valid configs remain valid.
 - **Major** (`x.0.0`) — breaking changes: removed or renamed fields, new required fields, changed `additionalProperties` rules.
 
-The `schemaVersion` field in config files should match the minor version they were written for (e.g. `"1.0.0"` for any `1.0.x` schema).
+The `schemaVersion` field in config files is the schema version they were written for (`"1.0.0"` for the current core). DRAFT blocks are exempt from this policy: they may change in a minor release.
 
 ---
 
@@ -94,10 +104,13 @@ The `schemaVersion` field in config files should match the minor version they we
 ```
 dataset-structure-model/
 ├── schema/
-│   └── DatasetStructureModel.schema.json   ← the schema (source of truth)
+│   ├── DatasetStructureModel.schema.json   ← the config schema (source of truth)
+│   └── EntityRecord.schema.json            ← what readers emit
 ├── examples/
-│   ├── neuroscience_dataset_example.json
-│   └── clinical_trial_example.json
+│   ├── flat_session_files.json
+│   ├── raw_processed_two_photon.json
+│   ├── sharebrain_toy_dataset.json
+│   └── entity-records/          # expected reader output for the examples
 ├── docs/                                    ← MkDocs documentation source
 │   ├── index.md
 │   ├── getting-started/
@@ -108,8 +121,8 @@ dataset-structure-model/
 │   └── contributing/
 ├── tests/                                   ← pytest test suite
 ├── src/
-│   ├── python/                              ← Python API (in development)
-│   └── matlab/                              ← MATLAB API (in development)
+│   ├── python/                              ← Python API (first pass on branch wip-python-api)
+│   └── matlab/                              ← MATLAB API (first pass on branch wip-matlab-api)
 ├── mkdocs.yml
 ├── requirements-docs.txt
 ├── requirements-test.txt

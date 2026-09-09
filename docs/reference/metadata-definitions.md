@@ -1,153 +1,84 @@
 # metadataDefinitions
 
-`metadataDefinitions` is a top-level object whose keys are metadata field identifiers. Each value is a metadata definition object. All fields defined here form the shared vocabulary used across all data locations.
+`metadataDefinitions` is a top-level object whose keys are metadata field identifiers (`^[A-Za-z_][A-Za-z0-9_]*$`). Each value is a metadata definition. The keys are the shared vocabulary every data location, identity declaration and template token refers to.
+
+`additionalProperties` is `false` on a definition and on its `validation` object.
 
 ```json
 "metadataDefinitions": {
   "session_id": {
-    "name": "Session ID",
+    "name": "session_id",
+    "title": "Session ID",
     "ofEntity": "session",
     "dataType": "string",
-    "description": "Unique identifier for experimental sessions"
+    "validation": { "pattern": "^m\\d{3}-\\d{8}-\\d{3}$" }
   },
   "imaging_depth": {
-    "name": "Imaging Depth",
+    "name": "imaging_depth",
+    "title": "Imaging depth",
     "ofEntity": "recording",
     "dataType": "number",
-    "unit": "µm",
+    "unit": "um",
     "validation": { "minimum": 0, "maximum": 1000 }
   }
 }
 ```
 
-## Metadata definition fields
+## Fields
 
 ### `name` *(required)*
 
-| | |
-|--|--|
-| Type | `string` |
-
-Human-readable name for this field (e.g. `"Session ID"`, `"Imaging Depth"`).
-
----
+Human-readable name. Conventionally the same as the key.
 
 ### `ofEntity` *(required)*
 
-| | |
-|--|--|
-| Type | `string` |
-
-The entity type this metadata field belongs to. Must match the `name` of an entry in `entityTypes` (e.g. `"subject"`, `"session"`).
-
----
+The entity type this field belongs to. Must match a name in `entityTypes`. A field is extracted once per instance of that entity type.
 
 ### `dataType` *(required)*
-
-| | |
-|--|--|
-| Type | `string` (enum) |
-| Default | `"string"` |
 
 | Value | Description |
 |-------|-------------|
 | `string` | Text |
 | `number` | Floating-point number |
 | `integer` | Whole number |
-| `date` | Calendar date |
-| `time` | Time of day |
-| `datetime` | Date and time |
+| `date` | Calendar date — parsed with the extraction rule's `valueFormat` |
+| `time` | Time of day — parsed with `valueFormat` |
+| `datetime` | Date and time — parsed with `valueFormat` |
 | `boolean` | True/false |
 | `array` | List of values |
 | `object` | Structured object |
 
----
+In [entity records](entity-record.md), `date`, `time` and `datetime` values are ISO 8601 strings.
 
-### `unit`
+### `title`, `description`, `unit`, `defaultValue`
 
-| | |
-|--|--|
-| Type | `string` |
-| Example | `"µm"`, `"Hz"`, `"s"`, `"kg"`, `"years"` |
-
-Unit of measurement for numeric fields. Ideally [UCUM](https://ucum.org/)-compatible. For dimensionless quantities, omit this field.
-
----
-
-### `description`
-
-| | |
-|--|--|
-| Type | `string` |
-
-Description of what this metadata represents. Used in documentation and by AI agents to understand the field's scientific meaning.
-
----
-
-### `title`
-
-| | |
-|--|--|
-| Type | `string` |
-
-User-facing display name for UIs (e.g. `"Subject ID"`, `"Acquisition Date"`). When absent, `name` is used.
-
----
-
-### `defaultValue`
-
-| | |
-|--|--|
-| Type | `string`, `number`, `boolean`, or `null` |
-
-Default value when the field cannot be extracted.
-
----
+Display name, prose, unit of measurement (UCUM notation recommended: `"um"`, `"Hz"`, `"s"`), and the value to use when extraction yields nothing.
 
 ### `validation`
 
-| | |
-|--|--|
-| Type | `object` |
-
-Optional validation rules:
-
 | Field | Type | Applies to | Description |
 |-------|------|-----------|-------------|
-| `pattern` | string (regex) | string | Value must match this pattern |
-| `minLength` | integer | string | Minimum character count |
-| `maxLength` | integer | string | Maximum character count |
-| `minimum` | number | number, integer | Minimum value (inclusive) |
-| `maximum` | number | number, integer | Maximum value (inclusive) |
-| `enum` | array | any | List of allowed values |
+| `pattern` | string (regex) | string | Value must match |
+| `minLength` / `maxLength` | integer | string | Length bounds |
+| `minimum` / `maximum` | number | number, integer | Inclusive bounds |
+| `enum` | array | any | Allowed values |
 
-```json
-"subject_id": {
-  "name": "Subject ID",
-  "ofEntity": "subject",
-  "dataType": "string",
-  "validation": {
-    "pattern": "^[A-Za-z0-9]+$",
-    "minLength": 3
-  }
-}
-```
+`validation.pattern` has a second job: when a level has a `pathComponentTemplate` but no `matchPattern`, each `{token}` in the template matches the referenced field's `validation.pattern`. Give identity fields a pattern.
 
 ---
 
 ## Relationship to metadataMapping
 
-`metadataDefinitions` declares *what* a field is. `metadataMapping` on each data location declares *how* to extract it from that location's naming convention. The same field can be extracted differently in each location:
+`metadataDefinitions` declares *what* a field is. Each data location's `metadataMapping` declares *how* to extract it from that location's naming convention. The same field is extracted differently in each location:
 
 ```
 metadataDefinitions.session_id
-    ↑ metadataRef
-    ├── raw-data metadataMapping: regex "^\d{8}_(.+)$" on level 1
-    └── processed-data metadataMapping: regex "^session-(.+)$" on level 1
+    ├── raw       metadataMapping: regex "_(m\d{3}-\d{8}-\d{3})$" on level "sessions"
+    └── processed metadataMapping: regex "^session-(.+)$"          on level "sessions"
 ```
 
-Both extract `session_id`; tools can match sessions across locations because they share the same vocabulary.
+Both produce the same `session_id`, so the two locations' sessions can be matched. See [Metadata Extraction](metadata-extraction.md).
 
 ## Relationship to identifierRef
 
-When an `entityType` declares `"identifierRef": "session_id"`, it means the value extracted for `session_id` is the canonical cross-location identity key for `session` entities. See [Top-Level Structure](overview.md#entitytypes).
+When an entity type declares `"identifierRef": "session_id"`, the value extracted for `session_id` is the identity of `session` entities across all locations. Extraction rules for identity fields must therefore produce identical values everywhere; use `normalize` where conventions differ.

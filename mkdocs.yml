@@ -4,6 +4,10 @@ repo_url: https://github.com/ehennestad/dataset-structure-model
 repo_name: ehennestad/dataset-structure-model
 edit_uri: edit/main/docs/
 
+# Work-item notes are symlinked into docs/ from a separate repo and are not part of the site.
+exclude_docs: |
+  _work-items/
+
 theme:
   name: material
   features:
@@ -59,8 +63,10 @@ nav:
       - dataLocations: reference/data-locations.md
       - entityLayout: reference/entity-layout.md
       - metadataDefinitions: reference/metadata-definitions.md
+      - Metadata Extraction: reference/metadata-extraction.md
       - entityRelationships: reference/entity-relationships.md
       - preferences: reference/preferences.md
+      - Entity Record: reference/entity-record.md
   - Guides:
       - guides/index.md
       - Usage Guide: guides/usage-guide.md
@@ -70,8 +76,9 @@ nav:
       - Pipeline Integration: guides/pipeline-integration.md
   - Examples:
       - examples/index.md
-      - Neuroscience Dataset: examples/neuroscience.md
-      - Clinical Trial: examples/clinical-trial.md
+      - Flat Session Files: examples/flat-session-files.md
+      - Raw and Processed Two-Photon: examples/raw-processed-two-photon.md
+      - SHAREbrain Toy Dataset: examples/sharebrain.md
   - API:
       - api/index.md
       - Python: api/python.md

@@ -1,39 +1,31 @@
 # AI Agent Instructions
 
-This page provides instructions for AI agents (LLMs) generating valid Dataset Structure Model configuration files. It is written to be self-contained: an agent can follow it without access to the schema file itself.
-
-!!! note "Work in progress"
-    This page will be expanded in a future release with a comprehensive prompt-ready specification. The current content covers the most important rules for producing valid instances.
+Rules for an LLM producing a valid Dataset Structure Model configuration from a directory listing. Self-contained: it does not require reading the schema. Every complete JSON example on this page is validated against the schema by the test suite.
 
 ---
 
-## What the DSM is
+## What a DSM config is
 
-A DSM configuration is a single JSON file that describes the physical layout and semantic structure of a scientific dataset. It is **descriptive** — it records how data is already organised on disk, rather than prescribing how it should be organised.
+One JSON file describing how a dataset is laid out on disk: which folders and files represent which entities, and how metadata is read from their names. It is **descriptive** — record what exists, never invent a layout. It validates against `schema/DatasetStructureModel.schema.json` (draft-07) and must satisfy the cross-reference rules below.
 
-The file must validate against `DatasetStructureModel.schema.json` (JSON Schema draft-07).
+## Top-level keys
 
----
+| Key | Required | Notes |
+|-----|----------|-------|
+| `schemaVersion` | Yes | `"1.0.0"` |
+| `dataLocations` | Yes | One entry per folder tree |
+| `entityTypes` | Yes in practice | One per entity type used in any layout |
+| `metadataDefinitions` | Yes in practice | Every field referenced anywhere |
+| `entityRelationships` | No | Semantic relations only |
+| `preferences` | No | Leave out; it is per-machine |
 
-## Required top-level keys
+No other top-level keys. Every object in the schema is strict (`additionalProperties: false`): do not add keys that are not listed here.
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `schemaVersion` | string | Always `"1.0.0"` for the current schema |
-| `entityTypes` | array | One entry per semantic entity type in the dataset |
-| `metadataDefinitions` | object | Global vocabulary of metadata fields |
-| `dataLocations` | array | One entry per logical collection of data |
+## `entityTypes`
 
-Optional top-level keys: `entityRelationships`, `preferences`.
-
----
-
-## `entityTypes` — rules
-
-- Each entry must have `"name"` (string, required).
-- Add `"identifierRef"` (string) naming the `metadataDefinitions` key that uniquely identifies this entity across locations. This enables cross-location entity matching.
-- Do **not** put `entityRelationships` inside an `entityType` or inside a `dataLocation` — they belong at the top level.
-- Valid optional fields: `name`, `description`, `isPrimary`, `identifierRef`, `identifierRefs`. No other fields are allowed (`additionalProperties: false`).
+- Each entry: `name` (required), plus **exactly one** of `identifierRef` (string) or `identifierRefs` (array). Optional: `description`, `isPrimary`, `color`.
+- `identifierRef` is a key of `metadataDefinitions` whose `ofEntity` is this type.
+- `identifierRefs` lists only fields of this type; never include the parent's id.
 
 ```json
 "entityTypes": [
@@ -42,113 +34,100 @@ Optional top-level keys: `entityRelationships`, `preferences`.
 ]
 ```
 
----
+## `metadataDefinitions`
 
-## `metadataDefinitions` — rules
+- An **object** keyed by identifier (`snake_case`), not an array.
+- Each value: `name`, `dataType`, `ofEntity` (required); optional `title`, `description`, `unit`, `defaultValue`, `validation`.
+- `dataType` ∈ `string, number, integer, date, time, datetime, boolean, array, object`.
+- Give identity fields `validation.pattern`.
+- Do not put extraction rules here.
 
-- This is an **object** (not an array). Keys are metadata field identifiers (e.g. `"subject_id"`).
-- Each value must have: `"name"` (string), `"dataType"` (string), `"ofEntity"` (string matching an entityType name).
-- `"dataType"` must be one of: `string`, `number`, `integer`, `boolean`, `date`, `datetime`.
-- Do **not** put `"ofEntity"` or extraction rules in `metadataMapping` — put `"ofEntity"` here.
+## `dataLocations`
 
-```json
-"metadataDefinitions": {
-  "subject_id": {
-    "name": "Subject ID",
-    "dataType": "string",
-    "ofEntity": "subject",
-    "description": "Unique identifier for research subjects"
-  }
-}
+Each entry:
+
+| Field | Required | Value |
+|-------|----------|-------|
+| `identifier` | Yes | `^[A-Za-z][A-Za-z0-9_-]*$`, unique |
+| `displayName` | Yes | text |
+| `dataCategory` | Yes | `raw, processed, derived, imported, reference, temporary, archive, custom` |
+| `sourceType` | Yes | `"filesystem"` (the others are DRAFT — do not emit them) |
+| `filesystemSource` | Yes | `{ rootStoragePaths, entityLayout, metadataMapping }` |
+| `access` | No | `"read"` (default) or `"readwrite"`; emit `readwrite` only for locations a tool writes to |
+| `derivedFrom` | No | identifiers of source locations |
+| `description`, `tags`, `customProperties`, `uuid` | No | |
+
+Never put `rootStoragePaths` or `entityLayout` directly on the location — they go inside `filesystemSource`. Never put `entityRelationships` inside a location.
+
+## `rootStoragePaths`
+
+Each: `identifier`, `path` (required); optional `environment`, `storageType` (`local, external, network, cloud, removable, virtual`), `volumeName`, `priority`, `uuid`, `customProperties`. There is no `isAvailable`.
+
+## `entityLayout`
+
+An array, outermost level first. Each level:
+
+- `name` (required, unique, `^[A-Za-z][A-Za-z0-9_-]*$`).
+- `entityType`: an `entityTypes` name — **omit it** for a structural level (a date folder, a fixed `processed` folder). Do not write `"other"`.
+- `matchPattern` (regex) **or** `pathComponentTemplate` — one is required unless `isVariable: false`, which requires `fixedName` instead.
+- `fileSystemType`: `"folder"` (default) or `"file"`. Use `"file"` when the files of many entities share one folder; it must be the last level.
+- `excludePatterns`, `isRequired`, `filePatterns`, `customProperties` optional.
+
+Reference levels by **name** from extraction rules.
+
+## `filePatterns`
+
+Each: `pattern` (required regex on the file name); optional `name`, `isRequired`, `cardinality` (`one` | `many`), `description`. The pattern may contain `{field_key}` tokens for the entity's own metadata: `"^{session_id}_raw\\.tif$"`. No `role`, `format`, `groupKey` or `metadataExtractors` — those do not exist.
+
+## `metadataMapping`
+
+An **array** of `{ "metadataRef": key, "extraction": {...} }`. The extraction object:
+
+| `method` | Required fields | Rule |
+|----------|-----------------|------|
+| `substring` | `pattern` | A Python slice `start:stop` — `"0:8"`, `"9:"`, `":-4"`, `":"`. Never `"0:end"`. |
+| `regex` | `pattern` | Value is the first capture group. Unnamed groups only; escape dots. |
+| `template` | `pattern` | `"{session_date}_{subject_id}"` referencing other fields. |
+| `fixed` | `value` | A constant. |
+| `function` | `extractorFunction` | **Do not emit by default.** It needs code in every reader. Propose it only when no declarative rule can express the value, and say so. |
+
+Plus `entityLayoutLevel` (a level **name**; `null` means the whole relative path), `valueFormat` for date/time fields in LDML notation (`"yyyyMMdd"`, `"yyyy_MM_dd"`, `"HH_mm_ss"`), and optional `normalize`.
+
+The methods `filename` and `filepath` do not exist; use `substring` with `":"`.
+
+## Cross-reference rules (checked by readers)
+
+- Every `identifierRef`, `metadataRef` and `{token}` names a key in `metadataDefinitions`.
+- Every `ofEntity`, layout `entityType`, `sourceEntity`, `targetEntity` names an `entityTypes` entry.
+- Every `derivedFrom` and `preferences.defaultDataLocationIdentifier` names a `dataLocations` identifier.
+- Every extraction `entityLayoutLevel` string names a level in that location's layout.
+- Identity extraction rules produce the **same value** for the same entity in every location.
+
+## Common mistakes
+
+1. Placing `rootStoragePaths`/`entityLayout` on the location instead of inside `filesystemSource`.
+2. An entity type without `identifierRef`.
+3. `"0:end"` — not a slice.
+4. `"entityType": "other"` — omit the field instead.
+5. Emitting `function` extractors for things a regex can do.
+6. Adding `isAvailable`, `role`, `groupKey`, or any key not listed here.
+7. Making `metadataMapping` an object, or `metadataDefinitions` an array.
+8. Using named regex groups — dialects differ between MATLAB and Python.
+
+## Complete example
+
+Directory listing:
+
+```
+/data/raw/
+├── m110/
+│   ├── 20250523_baseline/
+│   └── 20250601_stim/
+└── m220/
+    └── 20250524_baseline/
 ```
 
----
-
-## `dataLocations` — rules
-
-Each entry must have:
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `identifier` | string | Unique ID for this location |
-| `displayName` | string | Human-readable name |
-| `dataCategory` | string | See enum below |
-| `rootStoragePaths` | array | At least one entry |
-| `entityLayout` | array | At least one level |
-| `metadataMapping` | array | One entry per metadata field extracted here |
-
-`dataCategory` must be one of: `raw`, `processed`, `derived`, `imported`, `reference`, `temporary`, `archive`, `custom`.
-
-Optional fields: `description`, `derivedFrom`, `tags`, `customProperties`, `pathTemplate`.
-
-**Do not** put `entityRelationships` inside a `dataLocation`.
-
----
-
-## `rootStoragePaths` — rules
-
-Each entry must have `"identifier"`, `"path"` (string), and `"storageType"`.
-
-`storageType` must be one of: `local`, `network`, `cloud`, `external`.
-
-Optional: `volumeName`, `environment`, `priority` (integer), `isAvailable` (boolean).
-
----
-
-## `entityLayout` — rules
-
-- An **array** in order from outermost to innermost folder level (level 0 = top).
-- Each entry must have `"name"` (string), `"entityType"` (string matching an entityType name or `"other"`).
-- `"matchPattern"` (regex string) is required unless `"pathComponentTemplate"` is present.
-- `"isVariable": true` means folder names vary per entity; `false` means fixed name.
-- When `"isVariable": false`, add `"fixedName"` with the exact folder name.
-- For derived locations, use `"pathComponentTemplate"` (e.g. `"session-{session_id}"`) to support folder name generation.
-
----
-
-## `filePatterns` in `entityLayout` levels
-
-Each entry in `filePatterns` is a **file class**. Required fields: `"pattern"` (regex), `"role"`.
-
-`role` must be one of: `primary`, `sidecar`, `qc`, `log`, `config`, `auxiliary`.
-
-Optional: `format` (MIME type string), `description`, `isRequired` (boolean), `groupKey` (string), `metadataExtractors` (array).
-
----
-
-## `metadataMapping` — rules
-
-- An **array** (not an object).
-- Each entry must have `"metadataRef"` (string — key from `metadataDefinitions`) and `"extraction"` (object).
-- `extraction` must have `"method"`. Valid methods: `substring`, `regex`, `function`, `template`, `fixed`, `filename`, `filepath`.
-- `"entityLayoutLevel"` (integer, zero-based) specifies which folder depth to extract from.
-- Do **not** put `"ofEntity"` here — it belongs in `metadataDefinitions`.
-- Valid optional fields on each item: `metadataRef`, `extraction`. No other fields are allowed.
-
----
-
-## `entityRelationships` — rules
-
-- Top-level array only. **Never** inside `dataLocation` or `entityType`.
-- Each entry must have `"sourceEntity"`, `"targetEntity"`, `"relationType"`.
-- `relationType` must be one of: `oneToOne`, `oneToMany`, `manyToOne`, `manyToMany`.
-- Optional: `relationName`, `description`.
-- No other fields are allowed (`additionalProperties: false`).
-
----
-
-## Common mistakes to avoid
-
-1. Putting `entityRelationships` inside a `dataLocation` — it must be at the top level.
-2. Putting `"ofEntity"` inside `metadataMapping` entries — it belongs in `metadataDefinitions`.
-3. Using `"role": "derived"` in a file class — `derived` is a `dataCategory` value, not a file role.
-4. Adding extra properties to objects that have `additionalProperties: false` — `entityType`, `entityRelationship`, `metadataMapping` items, `preferences` are strict.
-5. Making `metadataMapping` an object instead of an array.
-6. Omitting `entityLayoutLevel` in extraction rules — tools need this to know which folder depth to parse.
-
----
-
-## Minimal valid example
+Config:
 
 ```json
 {
@@ -158,79 +137,48 @@ Optional: `format` (MIME type string), `description`, `isRequired` (boolean), `g
     { "name": "session", "identifierRef": "session_id" }
   ],
   "entityRelationships": [
-    {
-      "sourceEntity": "subject",
-      "targetEntity": "session",
-      "relationType": "oneToMany"
-    }
+    { "sourceEntity": "subject", "targetEntity": "session", "relationType": "oneToMany", "relationName": "hasSessions" }
   ],
   "metadataDefinitions": {
-    "subject_id": {
-      "name": "Subject ID",
-      "dataType": "string",
-      "ofEntity": "subject"
-    },
-    "session_id": {
-      "name": "Session ID",
-      "dataType": "string",
-      "ofEntity": "session"
-    }
+    "subject_id": { "name": "subject_id", "title": "Subject ID", "dataType": "string", "ofEntity": "subject", "validation": { "pattern": "^m\\d{3}$" } },
+    "session_id": { "name": "session_id", "title": "Session ID", "dataType": "string", "ofEntity": "session", "validation": { "pattern": "^\\d{8}_[a-z]+$" } },
+    "session_date": { "name": "session_date", "title": "Session date", "dataType": "date", "ofEntity": "session" },
+    "protocol": { "name": "protocol", "title": "Protocol", "dataType": "string", "ofEntity": "session" }
   },
   "dataLocations": [
     {
-      "identifier": "raw-data",
-      "displayName": "Raw Data",
+      "identifier": "raw",
+      "displayName": "Raw data",
+      "description": "One folder per subject, one folder per session named <date>_<protocol>.",
       "dataCategory": "raw",
-      "rootStoragePaths": [
-        {
-          "identifier": "main",
-          "path": "/data/raw",
-          "storageType": "local",
-          "environment": "linux-server"
-        }
-      ],
-      "entityLayout": [
-        {
-          "name": "subjects",
-          "entityType": "subject",
-          "matchPattern": "^[A-Za-z0-9]+$",
-          "isRequired": true,
-          "isVariable": true
-        },
-        {
-          "name": "sessions",
-          "entityType": "session",
-          "matchPattern": "^\\d{8}_[A-Za-z0-9]+$",
-          "isRequired": true,
-          "isVariable": true
-        }
-      ],
-      "metadataMapping": [
-        {
-          "metadataRef": "subject_id",
-          "extraction": { "method": "substring", "pattern": "0:end", "entityLayoutLevel": 0 }
-        },
-        {
-          "metadataRef": "session_id",
-          "extraction": { "method": "substring", "pattern": "0:end", "entityLayoutLevel": 1 }
-        }
-      ]
+      "access": "read",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [
+          { "identifier": "server", "path": "/data/raw", "storageType": "network" }
+        ],
+        "entityLayout": [
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^m\\d{3}$" },
+          { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{8}_[a-z]+$", "excludePatterns": ["^\\..*"] }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "subject_id",   "extraction": { "method": "substring", "pattern": ":",   "entityLayoutLevel": "subjects" } },
+          { "metadataRef": "session_id",   "extraction": { "method": "substring", "pattern": ":",   "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_date", "extraction": { "method": "substring", "pattern": "0:8", "valueFormat": "yyyyMMdd", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "protocol",     "extraction": { "method": "regex",     "pattern": "^\\d{8}_([a-z]+)$", "entityLayoutLevel": "sessions" } }
+        ],
+        "pathTemplate": "{rootPath}/{subject_id}/{session_id}"
+      }
     }
-  ],
-  "preferences": {
-    "defaultDataLocationIdentifier": "raw-data",
-    "environmentIdentifier": "linux-server"
-  }
+  ]
 }
 ```
 
----
-
-## Validation
+## Validate
 
 ```bash
 pip install jsonschema
 python -m jsonschema -i my-dataset.json schema/DatasetStructureModel.schema.json
 ```
 
-A zero exit code means the file is valid.
+Schema validation does not check the cross-reference rules; a reader's dry-run does.

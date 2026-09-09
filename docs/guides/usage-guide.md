@@ -1,6 +1,6 @@
 # Schema Usage Guide
 
-This guide explains how to write a Dataset Structure Model (DSM) configuration for your dataset. It walks through each section of the schema with practical examples and links to the full reference documentation.
+This guide explains how to write a Dataset Structure Model (DSM) configuration for your dataset. It walks through each section with practical examples and links to the reference pages.
 
 ---
 
@@ -8,49 +8,39 @@ This guide explains how to write a Dataset Structure Model (DSM) configuration f
 
 A DSM configuration is a single JSON file that describes:
 
-- **What entity types** exist in your dataset (subjects, sessions, recordings, …)
+- **What entity types** exist in your dataset (subjects, sessions, recordings, …) and what identifies each
 - **How entities relate** to each other (a subject has many sessions)
-- **Where data lives** on disk (one or more storage paths per environment)
-- **How folders are laid out** within each data location
+- **Where data lives** on disk (one or more storage roots per environment)
+- **How folders and files are laid out** within each data location
 - **How metadata is extracted** from folder and file names
-- **How to identify the same entity** across different data locations
+- **Which files belong to an entity**
 
-The configuration is purely descriptive — it tells tools how to read your data, not how to organise it. Your files do not need to move.
+The configuration is purely descriptive: it tells tools how to read your data, not how to organise it. Your files do not need to move.
 
-A minimal valid configuration looks like this:
+A minimal valid configuration:
 
 ```json
 {
   "schemaVersion": "1.0.0",
   "entityTypes": [
-    { "name": "subject" },
-    { "name": "session" }
+    { "name": "subject", "identifierRef": "subject_id" }
   ],
   "metadataDefinitions": {
-    "subject_id": {
-      "name": "Subject ID",
-      "dataType": "string",
-      "ofEntity": "subject"
-    }
+    "subject_id": { "name": "subject_id", "dataType": "string", "ofEntity": "subject" }
   },
   "dataLocations": [
     {
-      "identifier": "raw-data",
-      "displayName": "Raw Data",
+      "identifier": "raw",
+      "displayName": "Raw data",
       "dataCategory": "raw",
       "sourceType": "filesystem",
       "filesystemSource": {
-        "rootStoragePaths": [
-          { "identifier": "main", "path": "/data/raw", "storageType": "local" }
-        ],
+        "rootStoragePaths": [{ "identifier": "main", "path": "/data/raw" }],
         "entityLayout": [
-          { "name": "subjects", "entityType": "subject", "matchPattern": "^[A-Za-z0-9]+$", "isVariable": true }
+          { "name": "subjects", "entityType": "subject", "matchPattern": "^[A-Za-z0-9]+$" }
         ],
         "metadataMapping": [
-          {
-            "metadataRef": "subject_id",
-            "extraction": { "method": "substring", "pattern": "0:end", "entityLayoutLevel": 0 }
-          }
+          { "metadataRef": "subject_id", "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "subjects" } }
         ]
       }
     }
@@ -58,368 +48,241 @@ A minimal valid configuration looks like this:
 }
 ```
 
-See the [Schema Reference → Overview](../reference/overview.md#required-properties) for a full property table.
+See [Schema Reference → Top-Level Structure](../reference/overview.md) for the full property table.
 
 ---
 
 ## Entity Types
 
-[Entity types](../reference/overview.md#entitytypes) are the semantic categories of things in your dataset. Declare them once at the top level.
+[Entity types](../reference/overview.md#entitytypes) are the semantic categories of things in your dataset. Declare them once at the top level, and give each one an identity:
 
 ```json
 "entityTypes": [
-  {
-    "name": "subject",
-    "description": "A research subject (mouse)",
-    "isPrimary": true,
-    "identifierRef": "subject_id"
-  },
-  {
-    "name": "session",
-    "description": "A single experimental recording session",
-    "identifierRef": "session_id"
-  }
+  { "name": "subject", "description": "A research subject (mouse)", "isPrimary": true, "identifierRef": "subject_id" },
+  { "name": "session", "description": "A single recording session", "identifierRef": "session_id" }
 ]
 ```
 
-The `identifierRef` field names a key in `metadataDefinitions` that uniquely identifies an entity of this type. Tools use this to match entities across different data locations — for example, to find which processed files correspond to a given raw recording. See [Cross-Location Entity Matching](#cross-location-entity-matching) below.
+`identifierRef` names the `metadataDefinitions` key whose value identifies an instance of this type — across all data locations. It is required (or `identifierRefs` for a composite key). There is no fallback to folder names: that would make identity depend on where an entity was found. See [Cross-location entity matching](#cross-location-entity-matching).
 
-If `isPrimary` is true, this entity type is the top-level unit of your dataset (typically the subject or participant level).
+`isPrimary: true` marks the top-level unit of the dataset (typically subject or participant).
 
 ---
 
 ## Entity Relationships
 
-[Entity relationships](../reference/entity-relationships.md) are declared at the top level and apply globally across all data locations.
+[Entity relationships](../reference/entity-relationships.md) are declared at the top level and hold in every data location:
 
 ```json
 "entityRelationships": [
-  {
-    "sourceEntity": "subject",
-    "targetEntity": "session",
-    "relationType": "oneToMany",
-    "relationName": "hasSessions",
-    "description": "A subject can have multiple recording sessions"
-  }
+  { "sourceEntity": "subject", "targetEntity": "session", "relationType": "oneToMany", "relationName": "hasSessions" }
 ]
 ```
 
-Valid `relationType` values: `oneToOne`, `oneToMany`, `manyToOne`, `manyToMany`.
-
-The relationships describe the semantic structure of your data — they do not have to mirror the physical folder hierarchy. If sessions from all subjects are stored in one flat folder, the `oneToMany` relationship still correctly models that one subject has many sessions.
+They describe semantics, not folders. If all sessions of all subjects sit in one flat folder, `oneToMany` still holds.
 
 ---
 
 ## Metadata Definitions
 
-[Metadata definitions](../reference/metadata-definitions.md) are a global vocabulary of metadata fields. Define each field once here; data locations reference them by key.
+[Metadata definitions](../reference/metadata-definitions.md) are the global vocabulary. Define each field once; everything else references it by key.
 
 ```json
 "metadataDefinitions": {
   "subject_id": {
-    "name": "Subject ID",
-    "ofEntity": "subject",
-    "dataType": "string",
-    "description": "Unique identifier for research subjects",
-    "validation": {
-      "pattern": "^[A-Za-z0-9]+$",
-      "minLength": 3
-    }
+    "name": "subject_id", "title": "Subject ID", "ofEntity": "subject", "dataType": "string",
+    "validation": { "pattern": "^m\\d{3}$" }
   },
-  "acquisition_date": {
-    "name": "Acquisition Date",
-    "ofEntity": "session",
-    "dataType": "date",
-    "description": "Date when the session data was acquired"
+  "session_id": {
+    "name": "session_id", "title": "Session ID", "ofEntity": "session", "dataType": "string",
+    "validation": { "pattern": "^m\\d{3}-\\d{8}-\\d{3}$" }
   },
-  "imaging_depth": {
-    "name": "Imaging Depth",
-    "ofEntity": "recording",
-    "dataType": "number",
-    "unit": "µm",
-    "description": "Depth of the imaging plane below the cortical surface",
-    "validation": { "minimum": 0, "maximum": 1000 }
+  "session_date": {
+    "name": "session_date", "title": "Session date", "ofEntity": "session", "dataType": "date"
   }
 }
 ```
 
-Key fields:
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Human-readable display name |
-| `ofEntity` | Yes | Which entity type this field describes |
-| `dataType` | Yes | `string`, `number`, `integer`, `boolean`, `date`, `datetime` |
-| `description` | No | Prose description for documentation |
-| `unit` | No | Physical unit (UCUM notation recommended, e.g. `"Hz"`, `"µm"`, `"s"`) |
-| `validation` | No | Rules: `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`, `enum` |
+Give identity fields a `validation.pattern`: it makes values checkable, and it is what a `pathComponentTemplate` token matches when a level has no `matchPattern`.
 
 ---
 
 ## Data Locations
 
-A [data location](../reference/data-locations.md) describes one logical collection of data — its storage paths, folder layout, and how to extract metadata from it.
-
-```json
-"dataLocations": [
-  {
-    "identifier": "two-photon-calcium-imaging",
-    "displayName": "Two-Photon Calcium Imaging",
-    "description": "Raw two-photon calcium imaging recordings from cortical neurons",
-    "dataCategory": "raw",
-    "sourceType": "filesystem",
-    "tags": ["imaging", "two-photon", "calcium"],
-    "customProperties": {
-      "microscope": "Bruker",
-      "imagingRegion": "cortical layer 2/3"
-    },
-    "filesystemSource": {
-      "rootStoragePaths": [ ... ],
-      "entityLayout": [ ... ],
-      "metadataMapping": [ ... ]
-    }
-  }
-]
-```
-
-### Why is `dataCategory` per data location?
-
-A single dataset often contains multiple categories of data in different locations — for example, raw acquisitions on an instrument PC and motion-corrected results on an analysis server. The `dataCategory` is a property of the location's role in the data lifecycle, not of the dataset as a whole.
-
-This means you can have:
-
-- Two `"raw"` locations (data from two different instruments)
-- A `"processed"` location with `"derivedFrom": ["location-a", "location-b"]`
-- A `"reference"` location with a brain atlas
-
-See [Data Location Categories](data-location-categories.md) for the full list of category values and when to use each.
-
-### Root Storage Paths
-
-For `filesystem` data locations, `rootStoragePaths` is defined inside `filesystemSource` and can list one path per computing environment.
-
-```json
-"filesystemSource": {
-  "rootStoragePaths": [
-    {
-      "identifier": "lab-windows",
-      "path": "D:\\Data\\TwoPhoton",
-      "storageType": "local",
-      "environment": "windows-lab",
-      "priority": 1,
-      "isAvailable": true
-    },
-    {
-      "identifier": "analysis-mac",
-      "path": "/Volumes/DataDrive/TwoPhoton",
-      "storageType": "external",
-      "environment": "mac-analysis",
-      "priority": 1,
-      "isAvailable": true
-    }
-  ],
-  "entityLayout": [ ... ]
-}
-```
-
-Tools select the path whose `environment` matches the current `preferences.environmentIdentifier`. The `priority` field breaks ties when multiple paths match the same environment.
-
-### Provenance with `derivedFrom`
-
-If a data location was produced from other locations, declare this with `derivedFrom`:
+A [data location](../reference/data-locations.md) is one logical collection of data: its role, its permission, its root paths, its layout, and how to read metadata from it.
 
 ```json
 {
-  "identifier": "processed-calcium-imaging",
-  "dataCategory": "processed",
+  "identifier": "raw",
+  "displayName": "Raw two-photon data",
+  "dataCategory": "raw",
+  "access": "read",
   "sourceType": "filesystem",
-  "derivedFrom": ["two-photon-calcium-imaging"],
-  "filesystemSource": { ... }
+  "filesystemSource": {
+    "rootStoragePaths": [ ... ],
+    "entityLayout": [ ... ],
+    "metadataMapping": [ ... ]
+  }
 }
 ```
 
-This is a backwards-looking provenance record. It does not define how the processing was done — that is the responsibility of your pipeline tool (Nextflow, Snakemake, etc.). See [Pipeline Integration](pipeline-integration.md) for how DSM and pipeline tools work together.
+### Category and access are separate
+
+`dataCategory` is the location's role in the data lifecycle (`raw`, `processed`, `derived`, …). `access` is permission: `read` (default) or `readwrite`. A tool may only create folders and write files in a `readwrite` location. Describing existing data does not grant write access, so set `readwrite` explicitly on the locations a pipeline populates. See [Data Location Categories](data-location-categories.md).
+
+### Root storage paths
+
+One entry per computing environment; `preferences.environmentIdentifier` selects one at runtime.
+
+```json
+"rootStoragePaths": [
+  { "identifier": "lab-windows",  "path": "D:\\Data\\TwoPhoton",     "volumeName": "DATA", "storageType": "local",    "environment": "windows-lab" },
+  { "identifier": "analysis-mac", "path": "/Volumes/DATA/TwoPhoton", "volumeName": "DATA", "storageType": "external", "environment": "mac-analysis" }
+]
+```
+
+`volumeName` lets a reader re-resolve a root whose drive letter or mount point moved. Whether a path is reachable right now is not stored in the config.
+
+### Provenance with `derivedFrom`
+
+```json
+{ "identifier": "processed", "dataCategory": "processed", "access": "readwrite", "derivedFrom": ["raw"], "sourceType": "filesystem", "filesystemSource": { ... } }
+```
+
+A backwards-looking record. It also tells tools which source entities supply the metadata for generated output paths. See [Pipeline Integration](pipeline-integration.md).
 
 ---
 
 ## Entity Layout
 
-The [entity layout](../reference/entity-layout.md) describes the folder hierarchy within a data location. Each level maps a folder depth to an entity type.
+The [entity layout](../reference/entity-layout.md) is the hierarchy below the root, outermost first. Each level either represents an entity type or is structural.
+
+```json
+"entityLayout": [
+  { "name": "dates",    "matchPattern": "^\\d{4}_\\d{2}_\\d{2}$" },
+  { "name": "sessions", "entityType": "session",
+    "matchPattern": "^\\d{4}_\\d{2}_\\d{2}_\\d{2}_\\d{2}_\\d{2}_m\\d{3}-\\d{8}-\\d{3}$",
+    "excludePatterns": ["^\\..*"] }
+]
+```
+
+### Structural levels
+
+A level without `entityType` is structural: part of the path, not an entity. Date folders, a fixed `processed/` folder, an `auxiliary/` folder. Structural levels can still be read by extraction rules (a session's date from the date folder above it) but do not contribute to identity.
+
+### Fixed levels
+
+```json
+{ "name": "processed", "isVariable": false, "fixedName": "processed" }
+```
+
+### Missing ancestor levels
+
+A location does not need every ancestor level. A processed location may hold session folders with no subject folders above them; `subject_id` is then extracted from the session name and identifies the parent subject. See [Metadata Extraction → Which entity a value belongs to](../reference/metadata-extraction.md#which-entity-a-value-belongs-to).
+
+### File levels: entities that are groups of files
+
+When all files of all sessions are in one folder, declare a `file` level. Files are grouped into entities by their extracted identity — every file whose `session_id` is the same belongs to the same session:
 
 ```json
 "entityLayout": [
   {
-    "name": "subjects",
-    "entityType": "subject",
-    "matchPattern": "^[A-Za-z0-9]+$",
-    "excludePatterns": ["temp", "test", "backup"],
-    "isRequired": true,
-    "isVariable": true
-  },
-  {
-    "name": "sessions",
+    "name": "session-files",
     "entityType": "session",
-    "matchPattern": "^\\d{8}_[A-Za-z0-9]+$",
-    "isRequired": true,
-    "isVariable": true
-  },
-  {
-    "name": "recordings",
-    "entityType": "recording",
-    "matchPattern": "^[A-Za-z0-9_-]+$",
-    "isRequired": true,
-    "isVariable": true,
-    "filePatterns": [ ... ]
+    "fileSystemType": "file",
+    "matchPattern": "^m\\d{3}-\\d{8}-\\d{3}_.+$",
+    "filePatterns": [
+      { "name": "raw_movie", "pattern": "^{session_id}_raw\\.tif$",  "isRequired": true, "cardinality": "one" },
+      { "name": "metadata",  "pattern": "^{session_id}_meta\\.json$", "cardinality": "one" }
+    ]
   }
 ]
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Level name (for documentation) |
-| `entityType` | Yes | Entity type this level represents |
-| `matchPattern` | Conditionally | Regex to match valid folder names; required unless `pathComponentTemplate` is present |
-| `excludePatterns` | No | Array of regex patterns — folders matching any are skipped |
-| `isRequired` | No | Whether this level must be present |
-| `isVariable` | No | `true` = folder names vary per entity; `false` = fixed name |
-| `fixedName` | No | The fixed folder name when `isVariable: false` |
-| `pathComponentTemplate` | No | Template like `"session-{session_id}"` — used to generate folder names for derived locations |
-| `filePatterns` | No | File class definitions at this entity level |
-
-### Handling non-entity levels
-
-If a level does not correspond to a named entity type, use `"entityType": "other"` and give the level a descriptive `name`:
-
-```json
-{
-  "name": "auxiliary_files",
-  "entityType": "other",
-  "matchPattern": ".*",
-  "isRequired": false,
-  "isVariable": false
-}
-```
+The `{session_id}` token is replaced by the exact identity of the entity being resolved, so membership never leaks between `…-001` and `…-0010`. A file level must be the last level. See the [Flat Session Files example](../examples/flat-session-files.md).
 
 ---
 
-## File Grouping Patterns
+## File Patterns
 
-Within an `entityLayout` level, `filePatterns` lists the file grouping patterns expected at that level — one entry per group of files.
+`filePatterns` on a level lists the kinds of files that belong to an entity there — inside the entity folder for a folder level, in the shared folder for a file level.
 
-```json
-"filePatterns": [
-  {
-    "pattern": ".*\\.tif$",
-    "isRequired": true
-  },
-  {
-    "pattern": ".*_metadata\\.json$",
-    "isRequired": false
-  }
-]
-```
+| Field | Meaning |
+|-------|---------|
+| `pattern` | Regex on the file name; may contain `{token}` references to the entity's metadata |
+| `name` | Reported in entity records under this name |
+| `isRequired` | At least one match must exist for the entity to be complete |
+| `cardinality` | `one` or `many` (a numbered series) |
 
-Each entry has two fields:
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `pattern` | Yes | Regex matched against file names at this level |
-| `isRequired` | No | Whether a matching file must exist (default `false`) |
-
-If a file matching an `isRequired: true` pattern is absent, tools can report the entity as incomplete.
+Readers report matched files per named pattern and flag incomplete entities. This is where a tool finds "the raw movie of session X" without knowing the naming convention.
 
 ---
 
 ## Metadata Mapping
 
-The [metadata mapping](../reference/metadata-definitions.md#relationship-to-metadatamapping) in a data location declares how to extract each global metadata field from this location's folder/file names.
+`metadataMapping` says how each global field is read from this location's paths. Full contract: [Metadata Extraction](../reference/metadata-extraction.md).
 
 ```json
 "metadataMapping": [
-  {
-    "metadataRef": "subject_id",
-    "extraction": {
-      "method": "substring",
-      "pattern": "0:end",
-      "entityLayoutLevel": 0
-    }
-  },
-  {
-    "metadataRef": "acquisition_date",
-    "extraction": {
-      "method": "regex",
-      "pattern": "^(\\d{8})_",
-      "valueFormat": "yyyyMMdd",
-      "entityLayoutLevel": 1
-    }
-  },
-  {
-    "metadataRef": "session_id",
-    "extraction": {
-      "method": "regex",
-      "pattern": "^\\d{8}_(.+)$",
-      "entityLayoutLevel": 1
-    }
-  }
+  { "metadataRef": "session_id",   "extraction": { "method": "regex",     "pattern": "_(m\\d{3}-\\d{8}-\\d{3})$", "entityLayoutLevel": "sessions" } },
+  { "metadataRef": "subject_id",   "extraction": { "method": "regex",     "pattern": "_(m\\d{3})-\\d{8}-\\d{3}$",  "entityLayoutLevel": "sessions" } },
+  { "metadataRef": "session_date", "extraction": { "method": "substring", "pattern": ":", "valueFormat": "yyyy_MM_dd", "entityLayoutLevel": "dates" } }
 ]
 ```
 
-Each entry references a key from `metadataDefinitions` via `metadataRef` and specifies an `extraction` rule:
+| Method | Use for |
+|--------|---------|
+| `substring` | Fixed character positions. `pattern` is a Python-style slice: `0:8`, `9:`, `:-4`, `:` |
+| `regex` | Anything structural. Value = first capture group |
+| `template` | Compose from other fields: `"{session_date}_{subject_id}"` |
+| `fixed` | A constant `value` |
+| `function` | A reader-registered extractor by registry key. Needs code in every reader; avoid when a declarative rule will do |
 
-| Field | Description |
-|-------|-------------|
-| `method` | `substring`, `regex`, `function`, `template`, `fixed`, `filename`, `filepath` |
-| `pattern` | The extraction pattern (substring range, regex, or template string) |
-| `entityLayoutLevel` | Zero-based index into `entityLayout` indicating which folder depth to extract from |
-| `valueFormat` | Date/time format string, e.g. `"yyyyMMdd"` |
+Reference levels by **name**. Dates and times need `valueFormat` in LDML notation (`yyyyMMdd`, `HH_mm_ss`).
 
 ---
 
 ## Cross-Location Entity Matching
 
-When a dataset has multiple data locations (e.g. raw and processed), tools need to match entities across them — to find the processed files that correspond to a given raw session. The DSM handles this through `identifierRef` on `entityType`.
+With raw and processed locations, tools must know which processed folder corresponds to which raw session. Declare identity once:
 
 ```json
 "entityTypes": [
+  { "name": "subject", "identifierRef": "subject_id" },
   { "name": "session", "identifierRef": "session_id" }
 ]
 ```
 
-This declares that two session entities from different locations are the **same session** if:
-1. Their extracted `session_id` values are equal, **and**
-2. Their parent entities are also matched (hierarchical context is implicit)
-
-You do not need to include parent IDs in `identifierRef` — the entity hierarchy provides the rest of the identity. This design scales to any number of locations: adding a new location that extracts `session_id` is automatically linkable without any further configuration.
-
-If `identifierRef` is absent for an entity type, tools fall back to comparing raw folder names.
+Two sessions from different locations are the same session when their `session_id` is equal **and** their parent subjects match. Parent identity is implicit — do not put `subject_id` in the session's key. Every location that extracts `session_id` is automatically linkable, and every location must extract the same value for the same session (use `normalize` where conventions differ). See the [Raw and Processed example](../examples/raw-processed-two-photon.md).
 
 ---
 
 ## Preferences
 
-The [preferences](../reference/preferences.md) block records the context in which the configuration is used:
-
 ```json
 "preferences": {
-  "defaultDataLocationIdentifier": "two-photon-calcium-imaging",
-  "environmentIdentifier": "windows-lab"
+  "defaultDataLocationIdentifier": "processed",
+  "environmentIdentifier": "mac-analysis"
 }
 ```
 
-`environmentIdentifier` selects which `rootStoragePath` to use; `defaultDataLocationIdentifier` sets which location a tool opens by default. These values represent a specific installation or user session and can be updated without changing the structural description of the dataset.
+These describe a machine, not the dataset. Leave them out of a shared config and put them in a git-ignored `<config>.local.json` next to it; readers prefer the overlay. See [preferences](../reference/preferences.md).
 
 ---
 
-## Best Practices
+## What comes out: entity records
 
-1. **Define all metadata fields globally** in `metadataDefinitions` — never repeat a field definition in each location. The mapping in each location tells you *how to extract* the field, not what it is.
+Readers turn a config plus a directory tree into [entity records](../reference/entity-record.md): one object per entity with its identity, parents, the paths and matched files in each location, and its metadata. That is the contract tools build tables from, and it is identical across readers.
 
-2. **Use `identifierRef` on every entity type** that appears in more than one data location. This is the only thing needed to enable cross-location entity matching.
+---
 
-3. **Use `derivedFrom`** on every processed or derived location to record its provenance. Pipeline tools can read this to resolve input paths.
+## Best practices
 
-4. **Use `filePatterns` with `isRequired: true`** for files that must exist for an entity to be considered complete. This lets tools detect incomplete entities and report missing data.
-
-5. **Use `pathComponentTemplate`** on entity layout levels in derived locations. This lets tools generate output folder names by substituting source entity metadata values, keeping generation and parsing in sync.
-
-6. **Include `description` fields** throughout your configuration. These are the primary surface for LLM tools that read DSM configs — the richer the descriptions, the better LLMs can reason about your data.
+1. **Define every field once** in `metadataDefinitions`; give identity fields a `validation.pattern`.
+2. **Declare identity on every entity type.** Extraction rules for identity fields must agree across locations.
+3. **Reference levels by name**, not index.
+4. **Prefer `regex` and `substring` over `function`.** A config without `function` runs in any reader without code.
+5. **Set `access: readwrite`** only on locations tools may populate, and give those levels a `pathComponentTemplate` so generated and parsed names stay in sync.
+6. **Use `filePatterns` with names and `isRequired`** so tools can find files by role and report incomplete entities.
+7. **Keep `preferences` in a local overlay.**
+8. **Write `description` fields.** They are the primary surface for people and LLMs reading the config.

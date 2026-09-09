@@ -1,6 +1,6 @@
 # entityLayout
 
-`entityLayout` is an ordered array on each `dataLocation`. Each item defines one level of the folder hierarchy, from outermost (index 0) to innermost. Together they declare how physical folder structure maps to semantic entities.
+`entityLayout` is an ordered array inside `filesystemSource`. Each item is one level of the hierarchy below the root, outermost first. Together they say how folders and files map to entities.
 
 `additionalProperties` is `false` on `entityLayoutLevel`.
 
@@ -10,36 +10,42 @@
 
 | | |
 |--|--|
-| Type | `string` |
-| Example | `"subjects"`, `"sessions"` |
+| Type | `string`, `^[A-Za-z][A-Za-z0-9_-]*$` |
+| Example | `"subjects"`, `"sessions"`, `"dates"` |
 
-Label for this hierarchy level. Used in documentation, UI, and error messages.
+Name of the level, unique within the layout. Extraction rules reference levels by this name.
 
 ---
+
+## Optional fields
 
 ### `entityType`
 
 | | |
 |--|--|
 | Type | `string` |
-| Example | `"subject"`, `"session"`, `"recording"` |
+| Example | `"subject"`, `"session"` |
 
-The semantic entity type that folders (or files) at this level represent. Should match the `name` of an entry in `entityTypes`.
+The entity type that entries at this level represent; must match a name in `entityTypes`.
+
+**Omit it for a structural level** — a folder that is part of the path but not an entity, such as a date folder above the sessions or a fixed `processed/` folder. Structural levels are walked and can be read by extraction rules, but they are skipped when building entity identity:
+
+```json
+"entityLayout": [
+  { "name": "dates",    "matchPattern": "^\\d{4}_\\d{2}_\\d{2}$" },
+  { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{4}_\\d{2}_\\d{2}_\\d{6}_m\\d{3}-.+$" }
+]
+```
 
 ---
-
-## Optional fields
 
 ### `matchPattern`
 
 | | |
 |--|--|
-| Type | `string` (regex) |
-| Example | `"^[A-Za-z0-9]+$"`, `"^\\d{8}_.*$"` |
+| Type | `string` (regex, [portable subset](metadata-extraction.md#regex-portability)) |
 
-Regular expression matched against folder or file names at this level. Only entries whose names match are considered valid entities; non-matching names are silently skipped.
-
-Required for non-derived data locations. Optional when `pathComponentTemplate` is present — tools can derive a regex from the template automatically.
+Entries whose names match are entries at this level; others are ignored. Required for a variable level unless `pathComponentTemplate` is present.
 
 ---
 
@@ -48,25 +54,14 @@ Required for non-derived data locations. Optional when `pathComponentTemplate` i
 | | |
 |--|--|
 | Type | `string` |
-| Example | `"{subject_id}"`, `"session-{session_id}"`, `"{subject_id}_{acquisition_date}"` |
+| Example | `"session-{session_id}"`, `"{subject_id}_{acquisition_date}"` |
 
-Template declaring how this level's name is composed from metadata fields. Tokens in curly braces reference keys in `metadataDefinitions`.
+How an entry name is composed from metadata fields. Tokens in braces reference keys in `metadataDefinitions`. Two uses:
 
-Serves two purposes:
+1. **Generation** — when writing to a `readwrite` location, tools substitute the source entity's metadata to build the folder name.
+2. **Matching** — when `matchPattern` is absent, it is derived: each `{token}` becomes the referenced definition's `validation.pattern` if it has one, otherwise `[^/\\]+`; the result is anchored with `^` and `$`. Literal text between tokens is regex-escaped.
 
-1. **Documentation** — makes the naming convention immediately readable
-2. **Path generation** — for derived locations, tools substitute source entity metadata values to construct new output folder names
-
-```json
-{
-  "name": "sessions",
-  "entityType": "session",
-  "pathComponentTemplate": "session-{session_id}",
-  "matchPattern": "^session-[A-Za-z0-9-]+$"
-}
-```
-
-Generation flow: source entity has `session_id = "m110-001"` → template produces `session-m110-001/`.
+With `session_id` validated by `^m\d{3}-\d{8}-\d{3}$`, the template `session-{session_id}` derives `^session-m\d{3}-\d{8}-\d{3}$`.
 
 ---
 
@@ -75,9 +70,11 @@ Generation flow: source entity has `session_id = "m110-001"` → template produc
 | | |
 |--|--|
 | Type | `string` (enum) |
-| Values | `"folder"` (default), `"file"` |
+| Values | `"folder"` (default) \| `"file"` |
 
-Whether entities at this level are represented by folders or individual files.
+Whether entries at this level are folders or files. A file level must be the last level.
+
+**At a file level, entities are groups of files.** Entity instances are keyed by the entity type's identity extracted from the file name: every file whose extracted identity is equal belongs to the same entity. The entity resolves to that set of files plus their parent folder. This is how a folder of files dumped together — `m110-20250510-001_raw.tif`, `m110-20250510-001_meta.json`, `m110-20250510-002_raw.tif`, … — becomes one session per id rather than one per file. Declare which files belong to an entity with `filePatterns`.
 
 ---
 
@@ -85,22 +82,26 @@ Whether entities at this level are represented by folders or individual files.
 
 | | |
 |--|--|
-| Type | `array` of `fileGroupingPattern` objects |
+| Type | `array` of file pattern objects |
 
-Describes the file grouping patterns expected at this level. Each entry:
+The kinds of files that belong to an entity at this level. For a folder level: files inside the entity folder. For a file level: files in the parent folder that belong to the entity.
 
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
-| `pattern` | Yes | string (regex) | Matched against file names at this level |
-| `isRequired` | No | boolean | Whether a matching file must exist for the entity to be complete (default `false`) |
+| `pattern` | Yes | string (regex) | Matched against file names. May contain `{token}` references to the entity's metadata fields; each token is replaced by the regex-escaped value for the entity being resolved. |
+| `name` | No | string | Name of this file kind, unique within the level. Readers report matched files under it in entity records. |
+| `isRequired` | No | boolean | At least one match must exist for the entity to be complete (default `false`). |
+| `cardinality` | No | `"one"` \| `"many"` | Exactly one file or any number (default `"many"`). |
+| `description` | No | string | What the file contains. |
 
 ```json
 "filePatterns": [
-  { "pattern": ".*\\.dat$",       "isRequired": true  },
-  { "pattern": ".*\\.dat\\.meta$","isRequired": true  },
-  { "pattern": ".*\\.log$",       "isRequired": false }
+  { "name": "raw_movie", "pattern": "^{session_id}_raw\\.tif$",          "isRequired": true, "cardinality": "one" },
+  { "name": "behavior",  "pattern": "^{session_id}_behavior_\\d{2}\\.csv$", "cardinality": "many" }
 ]
 ```
+
+Because the token is substituted with the exact identity, `m110-20250510-001` never claims the files of `m110-20250510-0010`. Braces that contain only digits and commas (`\d{2}`, `{1,3}`) are regex quantifiers, not tokens.
 
 ---
 
@@ -110,9 +111,9 @@ Describes the file grouping patterns expected at this level. Each entry:
 |--|--|
 | Type | `array` of `string` |
 | Default | `[]` |
-| Example | `["temp", "backup", "^\\..*"]` |
+| Example | `["^\\..*", "^temp$", "^backup$"]` |
 
-Patterns for folder or file names to exclude at this level. Applied before `matchPattern`.
+Regular expressions for entry names to skip. Applied before `matchPattern`.
 
 ---
 
@@ -123,26 +124,34 @@ Patterns for folder or file names to exclude at this level. Applied before `matc
 | Type | `boolean` |
 | Default | `true` |
 
-Whether this level must exist in the hierarchy. When `false`, the level is optional and its absence does not constitute a structural error.
+Whether this level must exist. A location need not contain every ancestor level of its entities — a processed location may hold session folders directly, with subject identity extracted from the session name. See [Metadata Extraction → Which entity a value belongs to](metadata-extraction.md#which-entity-a-value-belongs-to).
 
 ---
 
-### `isVariable`
+### `isVariable` and `fixedName`
 
 | | |
 |--|--|
-| Type | `boolean` |
-| Default | `true` |
+| `isVariable` | `boolean`, default `true` |
+| `fixedName` | `string`, required when `isVariable` is `false` |
 
-Whether entities at this level have variable names (`true`, the common case) or a single fixed name (`false`). Use `false` for structural folders like `processed/` or `raw/` that are always the same.
+`isVariable: false` marks a level whose single folder always has the same name, e.g. `"fixedName": "processed"`. Such a level is usually structural (no `entityType`).
 
 ---
 
-### `fixedName`
+### `customProperties`
 
 | | |
 |--|--|
-| Type | `string` |
-| Example | `"processed"` |
+| Type | `object` |
 
-The fixed folder name when `isVariable` is `false`.
+Tool-specific data about this level — a configuration UI's example folder, for instance. Preserved, not interpreted.
+
+---
+
+## Constraints
+
+- A variable level (`isVariable` absent or `true`) needs `matchPattern` or `pathComponentTemplate`.
+- A fixed level (`isVariable: false`) needs `fixedName`.
+- A `file` level must be last.
+- Level names are unique within the layout; `filePatterns` names are unique within the level.

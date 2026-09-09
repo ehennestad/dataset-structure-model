@@ -14,9 +14,9 @@ Without a formal description, every tool hardcodes assumptions about folder stru
 
 - **Where** is the data? (per environment, per storage type)
 - **What** is the folder hierarchy? (subjects → sessions → recordings)
-- **How** are entity identities extracted from folder names? (regex, substring, fixed value)
+- **How** are entity identities extracted from folder and file names? (regex, substring, template)
 - **How** do entities in different locations correspond to each other?
-- **What** files live inside each entity folder, and what is each file's role?
+- **Which** files belong to each entity — even when many entities share one folder?
 
 ---
 
@@ -25,9 +25,10 @@ Without a formal description, every tool hardcodes assumptions about folder stru
 - **Descriptive, not prescriptive** — describes your data as it exists; no reorganisation required
 - **Multi-location** — a single config describes raw, processed, and derived data in separate folder trees
 - **Cross-location entity matching** — declares how entities (e.g. sessions) are linked across locations with different naming conventions
-- **Metadata-aware** — extraction rules pull metadata from folder/file names via regex, substring, or custom functions
+- **Metadata-aware** — extraction rules pull metadata from folder and file names via regex, substring and templates
 - **Multi-environment** — same dataset, different root paths for Windows lab, Mac analysis station, HPC cluster
-- **LLM-ready** — structured and self-describing; suitable as direct input to AI agents and pipelines
+- **LLM-ready** — strict, self-describing and small; an agent can write a config from a directory listing
+- **Defined output** — readers emit [entity records](reference/entity-record.md), the same in every language
 - **Pipeline-friendly** — integrates naturally with Nextflow, Snakemake, and similar tools
 
 ---
@@ -42,26 +43,26 @@ Without a formal description, every tool hardcodes assumptions about folder stru
     { "name": "session", "identifierRef": "session_id" }
   ],
   "metadataDefinitions": {
-    "subject_id": { "name": "Subject ID", "ofEntity": "subject", "dataType": "string" },
-    "session_id": { "name": "Session ID", "ofEntity": "session", "dataType": "string" }
+    "subject_id": { "name": "subject_id", "ofEntity": "subject", "dataType": "string" },
+    "session_id": { "name": "session_id", "ofEntity": "session", "dataType": "string" }
   },
   "dataLocations": [{
-    "identifier": "raw-data",
+    "identifier": "raw",
+    "displayName": "Raw data",
     "dataCategory": "raw",
-    "rootStoragePaths": [{ "identifier": "lab", "path": "/data/raw", "environment": "linux-lab" }],
-    "entityLayout": [
-      { "name": "subjects", "entityType": "subject", "matchPattern": "^[A-Za-z0-9]+$" },
-      { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{8}_.*$" }
-    ],
-    "metadataMapping": [
-      { "metadataRef": "subject_id", "extraction": { "method": "substring", "pattern": "0:end", "entityLayoutLevel": 0 } },
-      { "metadataRef": "session_id", "extraction": { "method": "regex", "pattern": "^\\d{8}_(.+)$", "entityLayoutLevel": 1 } }
-    ]
-  }],
-  "preferences": {
-    "defaultDataLocationIdentifier": "raw-data",
-    "environmentIdentifier": "linux-lab"
-  }
+    "sourceType": "filesystem",
+    "filesystemSource": {
+      "rootStoragePaths": [{ "identifier": "lab", "path": "/data/raw" }],
+      "entityLayout": [
+        { "name": "subjects", "entityType": "subject", "matchPattern": "^[A-Za-z0-9]+$" },
+        { "name": "sessions", "entityType": "session", "matchPattern": "^\\d{8}_.*$" }
+      ],
+      "metadataMapping": [
+        { "metadataRef": "subject_id", "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "subjects" } },
+        { "metadataRef": "session_id", "extraction": { "method": "regex", "pattern": "^\\d{8}_(.+)$", "entityLayoutLevel": "sessions" } }
+      ]
+    }
+  }]
 }
 ```
 
@@ -85,7 +86,7 @@ Without a formal description, every tool hardcodes assumptions about folder stru
 
 - :material-lightbulb: **[Examples](examples/index.md)**
 
-    Annotated real-world configs for neuroscience and clinical trials
+    A toy dataset, a flat folder of session files, and raw/processed two-photon data
 
 </div>
 

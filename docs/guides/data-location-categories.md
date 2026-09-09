@@ -2,14 +2,26 @@
 
 The `dataCategory` property on a [`dataLocation`](../reference/data-locations.md) specifies the role of that data in the research workflow or data lifecycle. It helps tools understand how to handle different types of data appropriately.
 
-`dataCategory` is a property of each individual location, not of the dataset as a whole — a single dataset commonly has several locations with different categories. See [Usage Guide → Why is `dataCategory` per data location?](usage-guide.md#why-is-datacategory-per-data-location) for the rationale.
+`dataCategory` is a property of each individual location, not of the dataset as a whole — a single dataset commonly has several locations with different categories. See [Usage Guide → Category and access are separate](usage-guide.md#category-and-access-are-separate) for the rationale.
+
+The category says nothing about permission. Whether tools may write to a location is the separate `access` field (`read` by default, `readwrite` when a tool is allowed to populate it). The table below gives the usual pairing; it is a convention, not a rule.
 
 ---
 
 ## Summary
 
-| Category | Role | Typical access |
-|----------|------|---------------|
+| Category | Role | Usual `access` |
+|----------|------|----------------|
+| `raw` | Original data from instruments | `read` |
+| `processed` | Cleaned/prepared for analysis | `readwrite` for the tool that produces it, `read` for everyone else |
+| `derived` | Results of analysis | `readwrite` |
+| `imported` | Data from external sources | `read` |
+| `reference` | Calibration or annotation data | `read` |
+| `temporary` | Intermediate processing artefacts | `readwrite` |
+| `archive` | Historical, not actively used | `read` |
+| `custom` | Specialised, project-specific | varies |
+
+----------|------|---------------|
 | `raw` | Original data from instruments | Read-only |
 | `processed` | Cleaned/prepared for analysis | Read-mostly |
 | `derived` | Results of analysis | Read/write |

@@ -1,7 +1,7 @@
 # Python API
 
-!!! warning "Coming soon"
-    The Python package is under development. This page will be updated when the first release is available.
+!!! warning "Status: models generated from the pre-freeze draft on branch `wip-python-api`"
+    Not released. `src/python/models.py` was generated with datamodel-codegen from the pre-freeze draft schema and predates `filesystemSource`, `access`, structural levels and the 1.0.0 extraction contract. The plan is a small validator and dry-run tool first — schema validation, the cross-reference rules, and a walk over a directory listing that reports entities found, unmatched files, duplicate identities and unresolved extractors — then regenerated models.
 
 The Python API provides:
 

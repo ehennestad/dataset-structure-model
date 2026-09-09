@@ -3,35 +3,57 @@
 All notable changes to the Dataset Structure Model schema are documented here.
 This project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] - 2026-09-09
 
-### Added
-- `identifierRef` and `identifierRefs` on `entityType` — declares the cross-location entity matching key
-- `derivedFrom` on `dataLocation` — declares provenance / data lineage between locations
-- `tags` and `customProperties` on `dataLocation` — free-form categorisation and tool-specific metadata
-- `priority` and `isAvailable` on `rootStoragePath` — path selection and availability hints
-- `unit` on metadata definitions — UCUM-compatible unit for numeric fields
-- `fileClass` definition (renamed from `fileGroupingPattern`) with `role` enum, `format`, `description`, `groupKey`, and `metadataExtractors`
+First release: the frozen core. Readers implement this version, configs rely on it, and the blocks marked DRAFT are the only parts that may change without a major bump.
 
-### Changed
-- `fileGroupingPattern` renamed to `fileClass`; `fileType` (free string) replaced by `role` (controlled enum: primary | sidecar | qc | log | config | auxiliary)
-- `matchPattern` on `entityLayoutLevel` is now optional when `pathComponentTemplate` is present
-- `pathComponentTemplate` description strengthened: tokens reference `metadataDefinitions` keys and serve as generation templates for derived locations
-- `additionalProperties: false` added to `entityType`, `preferences`, `entityRelationship`, and `metadataMapping` items for stricter validation
+Earlier drafts (from 2025-07-02; labelled `1.0.0` in their files but never tagged, released or consumed) are superseded. The lists below are relative to those drafts.
 
-### Fixed
-- `entityRelationships` is now correctly defined only at the top level (not inside `dataLocation`)
-- `metadataMapping` key name was previously inconsistent in examples
+### The core
+- `filesystem` source type, with `rootStoragePaths`, `entityLayout` and `metadataMapping` nested under `filesystemSource`
+- Extraction methods `substring`, `regex`, `template`, `fixed` and `function`
+- Declared entity identity, structural levels, file-level entities
+- `schema/EntityRecord.schema.json` — the object readers emit
 
-## [1.0.0] - 2025-07-02
+### Added (relative to the drafts)
+- `access` (`read` | `readwrite`, default `read`) on `dataLocation` — permission, separate from `dataCategory`
+- `uuid` on `dataLocation` and `rootStoragePath` for tools that persist references
+- `customProperties` on `entityLayoutLevel` and `rootStoragePath`
+- Structural levels: `entityLayoutLevel.entityType` is optional; a level without it is walked but skipped in identity
+- File-level entities: at `fileSystemType: "file"`, files are grouped into one entity per extracted identity; the entity resolves to its set of files
+- `{token}` references in `filePatterns[].pattern`, substituted with the entity's identity before matching
+- `name` and `cardinality` (`one` | `many`) on `fileGroupingPattern`
+- `value` on `metadataExtraction` for method `fixed`
+- Schema-enforced constraints: exactly one of `identifierRef`/`identifierRefs` per entity type; `matchPattern` or `pathComponentTemplate` on a variable level; `fixedName` on a fixed level; per-method required fields; `substring` pattern must be a slice
+- Defined `pathComponentTemplate` → `matchPattern` derivation (`validation.pattern` of the token's field, else `[^/\\]+`, anchored)
+- Defined `function` call contract: `extractorFunction` is a registry key; readers call `(fullPath, levelName, dataLocationIdentifier)`
+- Local overlay convention `<config>.local.json` for `preferences`
+- Examples `flat_session_files.json` and `raw_processed_two_photon.json`; expected entity records in `examples/entity-records/`
+- Tests: rejection cases for every constraint, cross-reference integrity, entity records, and validation of every complete JSON snippet in the docs
+- Reference pages `metadata-extraction.md` and `entity-record.md`
 
-### Added
-- Initial schema release
-- `dataLocations` with `entityLayout`, `metadataMapping`, `rootStoragePaths`
-- `entityTypes` and `entityRelationships` at top level
-- `metadataDefinitions` with validation rules
-- `preferences` with environment and default location selection
-- 8 `dataCategory` values: raw, processed, derived, imported, reference, temporary, archive, custom
-- 7 `metadataExtraction` methods: substring, regex, function, template, fixed, filename, filepath
-- Neuroscience dataset example
-- Schema usage guide and data location categories documentation
+### Changed (relative to the drafts)
+- `preferences` is optional and has no required fields
+- `entityLayoutLevel` requires only `name`
+- `substring` pattern is a Python slice (`start:stop`, 0-based, half-open, negative indices, no step); the `end` keyword is gone
+- `regex` value is the first capture group, else the whole match; portable subset documented
+- `valueFormat` is Unicode LDML notation
+- Level references by name are preferred over 0-based indices
+- `identifier` on `dataLocation`, `rootStoragePath`, `entityLayoutLevel` and `fileGroupingPattern` constrained to `^[A-Za-z][A-Za-z0-9_-]*$`; `metadataDefinitions` keys to `^[A-Za-z_][A-Za-z0-9_]*$`
+- `metadataDefinition` and its `validation` object are strict (`additionalProperties: false`)
+- Draft configs that declared `schemaVersion: "1.0.0"` do not validate against this release (identity, level and method constraints)
+
+### Removed (relative to the drafts)
+- `rootStoragePath.isAvailable` — runtime state, reported by readers
+- Extraction methods `filename` and `filepath` — use `substring` with `":"` (and `entityLayoutLevel: null` for the whole path)
+- The `"other"` entity type convention — omit `entityType` instead
+- Fallback of entity identity to the raw folder name — identity is declared
+- The `fileClass` proposal (`role`, `format`, `groupKey`, `metadataExtractors`) that appeared in a draft changelog and design note but never in the schema
+
+### DRAFT (outside the core)
+- `spreadsheet`, `database` and `api` source types; the `sidecar` extraction method. They validate, readers may reject them, and they may change in a minor release.
+
+## Pre-release drafts (never tagged)
+
+- 2025-07-02 — initial draft: `dataLocations` with `entityLayout`, `metadataMapping`, `rootStoragePaths`; `entityTypes` and `entityRelationships`; `metadataDefinitions` with validation rules; `preferences`; 8 `dataCategory` values; 7 extraction methods including `filename` and `filepath`; a neuroscience example.
+- Later drafts: `identifierRef`/`identifierRefs`, `derivedFrom`, `tags`, `customProperties`, `priority` and `isAvailable`, `unit`; `filesystemSource` nesting with symmetric source types; a `fileClass` proposal (withdrawn); mkdocs documentation.

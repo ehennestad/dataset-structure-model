@@ -1,3 +1,4 @@
+import copy
 import json
 import pathlib
 
@@ -5,15 +6,70 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent
 SCHEMA_PATH = REPO_ROOT / "schema" / "DatasetStructureModel.schema.json"
+ENTITY_RECORD_SCHEMA_PATH = REPO_ROOT / "schema" / "EntityRecord.schema.json"
 EXAMPLES_DIR = REPO_ROOT / "examples"
+RECORDS_DIR = EXAMPLES_DIR / "entity-records"
+DOCS_DIR = REPO_ROOT / "docs"
+
+
+def load_json(path):
+    with pathlib.Path(path).open() as f:
+        return json.load(f)
 
 
 @pytest.fixture(scope="session")
 def schema():
-    with SCHEMA_PATH.open() as f:
-        return json.load(f)
+    return load_json(SCHEMA_PATH)
+
+
+@pytest.fixture(scope="session")
+def entity_record_schema():
+    return load_json(ENTITY_RECORD_SCHEMA_PATH)
 
 
 @pytest.fixture(scope="session")
 def example_files():
     return sorted(EXAMPLES_DIR.glob("*.json"))
+
+
+_MINIMAL_CONFIG = {
+    "schemaVersion": "1.0.0",
+    "entityTypes": [
+        {"name": "subject", "identifierRef": "subject_id"},
+        {"name": "session", "identifierRef": "session_id"},
+    ],
+    "metadataDefinitions": {
+        "subject_id": {"name": "subject_id", "dataType": "string", "ofEntity": "subject"},
+        "session_id": {"name": "session_id", "dataType": "string", "ofEntity": "session"},
+    },
+    "dataLocations": [
+        {
+            "identifier": "raw",
+            "displayName": "Raw",
+            "dataCategory": "raw",
+            "sourceType": "filesystem",
+            "filesystemSource": {
+                "rootStoragePaths": [{"identifier": "main", "path": "/data/raw"}],
+                "entityLayout": [
+                    {"name": "subjects", "entityType": "subject", "matchPattern": "^m\\d{3}$"},
+                    {"name": "sessions", "entityType": "session", "matchPattern": "^\\d{8}_.+$"},
+                ],
+                "metadataMapping": [
+                    {
+                        "metadataRef": "subject_id",
+                        "extraction": {"method": "substring", "pattern": ":", "entityLayoutLevel": "subjects"},
+                    },
+                    {
+                        "metadataRef": "session_id",
+                        "extraction": {"method": "regex", "pattern": "^\\d{8}_(.+)$", "entityLayoutLevel": "sessions"},
+                    },
+                ],
+            },
+        }
+    ],
+}
+
+
+def minimal_config():
+    """A fresh copy of the smallest config that satisfies the frozen core."""
+    return copy.deepcopy(_MINIMAL_CONFIG)

@@ -1,82 +1,119 @@
 # Schema Design Decisions
 
-This document captures the rationale behind key design choices in the Dataset Structure Model. It is intended for contributors and tool builders who need to understand the *why* behind the schema, not just the *what*.
+The rationale behind the choices in the Dataset Structure Model, for contributors and tool builders who need the *why*, not just the *what*.
 
 ---
 
 ## The DSM is descriptive, not prescriptive
 
-Most existing data standards (BIDS, ISA, NWB) require you to conform your data to a specified structure. The DSM takes the opposite approach: you describe your data as it actually exists on disk. This is a deliberate choice to support the large volume of heterogeneous, legacy, and instrument-specific datasets that do not conform to any standard and are unlikely to be reorganised.
-
-The implication is that the DSM is a *recipe*, not a *schema for the data itself*. It tells tools how to read your data; it does not tell you how to organise it.
+Most data standards (BIDS, ISA, NWB) require you to conform your data to a specified structure. The DSM does the opposite: you describe your data as it exists on disk. This supports the large volume of heterogeneous, legacy and instrument-specific datasets that will never be reorganised. The DSM is a *recipe for reading*, not a schema for the data itself.
 
 ---
 
-## `dataCategory` is per data location, not global
+## A frozen core, and DRAFT blocks outside it
 
-Each `dataLocation` has its own `dataCategory` (raw, processed, derived, etc.). This is intentional: a single dataset often contains multiple categories of data stored in different locations with different folder structures and naming conventions. The category is a property of a location's role in the data lifecycle, not of the dataset as a whole.
+A schema without an implementation drifts — the repository's own history shows it. Version 1.0.0 freezes what readers implement and configs rely on: the `filesystem` source, the extraction methods `substring`, `regex`, `template`, `fixed` and `function`, entity identity, file-level entities and the entity record. `spreadsheet`, `database` and `api` sources and the `sidecar` method stay in the schema as **DRAFT** so their place is reserved, but readers may reject them and they may change without a major bump. The rule from here: a field enters the core when a reader consumes it, not before.
+
+---
+
+## `dataCategory` is per location; `access` is a separate field
+
+A dataset commonly has several locations with different lifecycle roles, so category belongs on the location. Permission is a different axis — an `imported` location can be writable, a `processed` mirror read-only — and inferring it from category is fragile. `access` says whether tools may write; it defaults to `read` because describing existing data grants nothing.
 
 ---
 
 ## `metadataDefinitions` is global; `metadataMapping` is per location
 
-Metadata fields (e.g., `session_id`, `subject_id`) are defined once globally in `metadataDefinitions`. Each `dataLocation` then declares, in `metadataMapping`, how to *extract* those fields from its specific folder or file naming convention.
-
-This separation ensures that:
-
-1. Metadata field names are consistent across locations (no aliasing)
-2. The same field can be extracted differently in each location (different regex, different level)
-3. Cross-location entity matching (via `identifierRef`) operates on a shared vocabulary
+Fields are defined once and extracted differently per location. This keeps names consistent (no aliasing), lets each location have its own naming convention, and gives cross-location matching a shared vocabulary.
 
 ---
 
-## Cross-location entity identity is declared on `entityType`, not on location pairs
+## Identity is declared on `entityType` and is required
 
-To match entities across data locations (e.g., the same session in raw and processed data), the `identifierRef` field on `entityType` declares which metadata field serves as the canonical identity key. This applies globally to all locations — any two locations that both extract the same value for `session_id` for a `session` entity are considered to refer to the same session.
+`identifierRef` (or a composite `identifierRefs`) on the entity type is the cross-location key. It is declared once per type rather than per location pair, so it scales to N locations and any new location that extracts the field is automatically linkable. Hierarchical context is implicit: a session is identified by its own key and its ancestors' keys.
 
-This design was chosen over pairwise `sourceLocation`/`targetLocation` declarations because:
-
-- It scales to N locations without O(N²) declarations
-- Adding a new location that extracts `session_id` is automatically linkable
-- The identity key is a property of what the entity *is*, not of any particular pair of locations
-
-The hierarchical context is implicit: a session is identified by (its own `identifierRef` value AND its parent subject's `identifierRef` value). Tools traverse the entity hierarchy when matching.
+Identity is **required**. Earlier drafts fell back to comparing raw folder names, which made identity depend on which location an entity was found in — the opposite of what a cross-location table needs. Requiring the declaration costs one line per entity type.
 
 ---
 
-## `pathComponentTemplate` serves double duty: documentation and path generation
+## Structural levels instead of an `"other"` entity type
 
-`pathComponentTemplate` on `entityLayoutLevel` (e.g., `"session-{session_id}"`) serves two purposes:
-
-1. **Documentation**: makes the naming convention human-readable at a glance
-2. **Generation**: for derived data locations, tools substitute source entity metadata values into the template to construct new output folder names
-
-When `pathComponentTemplate` is present, `matchPattern` becomes optional. Tools can auto-derive a matching regex from the template. This avoids the two declarations getting out of sync.
+Folders that are part of the path but are not entities — date folders, a fixed `processed/` — are levels without `entityType`. Earlier docs suggested a magic `"other"` type; a missing field is more honest than a fake type, and it states the rule that matters: structural levels are skipped when building identity. Without that rule the motivating case, raw `{date}/{session}` against processed `{subject}/{session}`, would never match because the ancestor chains differ.
 
 ---
 
-## `derivedFrom` is for provenance, not pipeline definition
+## Ancestor levels may be missing; ancestor identity may come from a descendant
 
-`derivedFrom` on a `dataLocation` declares which source locations were the input to produce this location's data. It is a backwards-looking record of lineage — it does not define how the processing was done (that is the responsibility of pipeline tools such as Nextflow or Snakemake).
-
-The intended integration pattern is: pipeline tools read DSM configs to resolve input paths, write outputs to the declared derived location, and optionally update `derivedFrom` after a run.
+A processed location that holds session folders with no subject folder above them is common. The subject still exists — its id is in the session name — so extraction rules for an ancestor type run on the nearest descendant level and identify the parent. Requiring every location to mirror the full hierarchy would exclude most real processed-data layouts.
 
 ---
 
-## `fileGroupingPattern` describes which files belong to an entity
+## File-level entities are groups keyed by identity
 
-`filePatterns` on an `entityLayoutLevel` lists the regex patterns for files expected at that level, with an `isRequired` flag to mark files whose absence indicates an incomplete entity. The schema deliberately keeps this simple — pattern matching and completeness checking — without prescribing file roles, formats, or co-occurrence groups. Domain-specific semantics can be captured in `description` fields elsewhere in the config.
+A folder full of files from many sessions is the layout that "session = folder" models cannot represent. At a `file` level, entities are keyed by the identity extracted from the file name: N files with equal identity are one entity. Membership is declared by `filePatterns` whose patterns may embed `{token}` references to the entity's identity, so `m110-…-001` never claims files of `m110-…-0010`. The alternative — "files whose name contains the id" — is exactly the ambiguity this replaces.
+
+---
+
+## `substring` is a Python slice
+
+Indices are how people specify fixed positions, and configuration UIs let users click characters, so the method stays. Its syntax needed one unambiguous definition across languages: `start:stop`, 0-based, half-open, negative indices, no step — a Python slice verbatim, enforced by the schema. The `end` keyword was MATLAB-only and cannot round-trip; MATLAB readers convert instead. A regex covers every case a slice does (`^.{4}(.{14})` is characters 5–18) but nobody should have to write that.
+
+---
+
+## `function` names a registry key, with a fixed call contract
+
+A function extractor is portable when two things hold: the name is language-neutral, and every implementation receives the same inputs. So `extractorFunction` is a registry key resolved by each reader, and the call is `(fullPath, levelName, dataLocationIdentifier)` returning a value of the field's `dataType`. Whether two implementations agree is checked by conformance fixtures, not by the schema. A config that uses `function` does not run until someone writes code, so LLM-generated configs should prefer the declarative methods.
+
+---
+
+## `filename` and `filepath` were removed
+
+`filename` was `substring` with pattern `:`; `filepath` was the same with `entityLayoutLevel: null`. Two spellings of one thing is a cost for every reader and for LLMs choosing between them.
+
+---
+
+## `pathComponentTemplate` serves double duty, and the derivation is defined
+
+The template documents the naming convention, generates names when writing, and derives `matchPattern` when that is absent. "Tools may derive a regex" is not a rule; the rule is: a `{token}` matches the referenced definition's `validation.pattern`, else `[^/\\]+`, anchored `^…$`. Configs that rely on templates — LLM-written ones will — now behave identically everywhere.
+
+---
+
+## `derivedFrom` is provenance, not a pipeline definition
+
+It records which locations fed this one. How the processing ran belongs to the pipeline tool (Nextflow, Snakemake, …).
+
+---
+
+## `fileGroupingPattern` stays simple
+
+A pattern, an optional name, `isRequired`, `cardinality`. A richer *file class* with role, MIME format, co-occurrence `groupKey` and per-file extractors was drafted and withdrawn: no reader consumed it, and roles can be expressed by `name` and `description`. Co-occurrence groups may return when a reader needs them.
+
+---
+
+## `preferences` is instance state, so it is optional and may live in an overlay
+
+Active environment and default location describe a machine, not the dataset. Keeping them only in a shared, version-controlled file means every checkout edits the same line. The overlay convention (`<config>.local.json`) keeps the shared config machine-independent. For the same reason there is no `isAvailable` on root paths: reachability is runtime state that readers report.
+
+---
+
+## `uuid` alongside `identifier`
+
+Identifiers are human-chosen and may be renamed. Tools that persist references to a location or root path outside the config (a table recording where each entity was found) need something that never changes. Both exist; the config uses identifiers, persistence uses uuids.
+
+---
+
+## Regex portable subset and LDML date formats
+
+Patterns run in MATLAB `regexp` and Python `re`, whose dialects differ (named groups, for one). The schema documents the common subset rather than picking a language. Date formats use Unicode LDML because MATLAB and Java are native to it and the translation to `strftime` is mechanical.
+
+---
+
+## The entity record is part of the spec
+
+Without a defined output, "supports multiple entity tables" and "portable across languages" cannot be checked. The entity record is the object readers emit and tools store; a conformance fixture is a listing plus the records it must produce.
 
 ---
 
 ## No dataset-level metadata in the schema
 
-The DSM deliberately excludes dataset-level descriptive metadata (name, creator, DOI, domain, license). This information belongs in existing standards: BIDS `dataset_description.json`, NWB file-level attributes, openMINDS, schema.org Dataset, or DCAT. The DSM focuses exclusively on structural metadata — how data is organised, how entities relate, and how metadata can be extracted from paths.
-
-Encouraging the use of existing standards for descriptive metadata avoids duplication and ensures interoperability with data catalogs and repositories that already consume those standards.
-
----
-
-## `preferences` is instance-level, not schema-level
-
-The `preferences` block (default data location, current environment) represents the state of a specific installation or user session. It is part of the config file rather than a separate file to keep the DSM self-contained: a single JSON file describes both the dataset structure and the context in which it should be interpreted.
+Name, creator, DOI, licence belong to existing standards (BIDS `dataset_description.json`, NWB attributes, openMINDS, schema.org Dataset, DCAT). The DSM describes structure only.
