@@ -1,0 +1,32 @@
+{
+  "description": "A value the reference reads with a registered function. A regex must do instead.",
+  "referenceConfig": "eval/cases/function-extractor/reference.json",
+  "entityCounts": {
+    "subject": 1,
+    "session": 3
+  },
+  "hierarchy": {
+    "subject": [],
+    "session": [
+      "subject"
+    ]
+  },
+  "minEntitiesWithLocations": {
+    "subject": 1,
+    "session": 3
+  },
+  "maxNoMatch": 0,
+  "forbiddenIssueCodes": [
+    "unresolved-extractor"
+  ],
+  "metadataValueSets": {
+    "session": [
+      [
+        "1"
+      ],
+      [
+        "2"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "description": "Two folder levels, noise to exclude, a duplicate folder the skill may treat either way.",
+  "referenceConfig": "conformance/folder-hierarchy-basic/config.json",
+  "entityCounts": {
+    "subject": 2,
+    "session": [
+      3,
+      4
+    ]
+  },
+  "hierarchy": {
+    "subject": [],
+    "session": [
+      "subject"
+    ]
+  },
+  "minEntitiesWithLocations": {
+    "subject": 2,
+    "session": 3
+  },
+  "maxNoMatch": 1,
+  "metadataValueSets": {
+    "session": [
+      [
+        "2025-05-23"
+      ],
+      [
+        "2025-06-01"
+      ],
+      [
+        "2025-05-24"
+      ]
+    ]
+  }
+}

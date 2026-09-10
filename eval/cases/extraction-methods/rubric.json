@@ -1,0 +1,35 @@
+{
+  "description": "A structural level mid-tree, and a sibling folder that must not match.",
+  "referenceConfig": "conformance/extraction-methods/config.json",
+  "entityCounts": {
+    "subject": 2,
+    "session": 3
+  },
+  "hierarchy": {
+    "subject": [],
+    "session": [
+      "subject"
+    ]
+  },
+  "minEntitiesWithLocations": {
+    "subject": 2,
+    "session": 3
+  },
+  "maxNoMatch": 2,
+  "metadataValueSets": {
+    "session": [
+      [
+        "2025-05-23",
+        "10:00:00"
+      ],
+      [
+        "2025-06-01",
+        "09:30:00"
+      ],
+      [
+        "2025-05-24",
+        "12:00:00"
+      ]
+    ]
+  }
+}

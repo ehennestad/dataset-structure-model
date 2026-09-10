@@ -1,0 +1,23 @@
+{
+  "environmentIdentifier": "mac-lab",
+  "roots": [
+    {
+      "dataLocationIdentifier": "recorded",
+      "rootStoragePathIdentifier": "lab-nas",
+      "entries": [
+        ".DS_Store",
+        "m110-20250510-0010_raw.tif",
+        "m110-20250510-001_behavior_01.csv",
+        "m110-20250510-001_behavior_02.csv",
+        "m110-20250510-001_extra.bin",
+        "m110-20250510-001_meta.json",
+        "m110-20250510-001_raw.tif",
+        "m110-20250510-001_raw.tif.bak",
+        "m110-20250510-002_raw.tif",
+        "m110-20250510-003_meta.json",
+        "m221-20250511-001_raw.tif",
+        "notes.txt"
+      ]
+    }
+  ]
+}

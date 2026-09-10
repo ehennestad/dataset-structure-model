@@ -1,0 +1,43 @@
+{
+  "description": "File-level entities sharing one folder. Carries the substring-collision trap.",
+  "referenceConfig": "conformance/flat-session-files/config.json",
+  "entityCounts": {
+    "subject": 2,
+    "session": [
+      4,
+      5
+    ]
+  },
+  "hierarchy": {
+    "subject": [],
+    "session": [
+      "subject"
+    ]
+  },
+  "minEntitiesWithLocations": {
+    "session": 4
+  },
+  "maxNoMatch": 2,
+  "pathsMustNotShareRecord": [
+    [
+      "m110-20250510-001_raw.tif",
+      "m110-20250510-0010_raw.tif"
+    ]
+  ],
+  "metadataValueSets": {
+    "session": [
+      [
+        "2025-05-10"
+      ],
+      [
+        "2025-05-10"
+      ],
+      [
+        "2025-05-10"
+      ],
+      [
+        "2025-05-11"
+      ]
+    ]
+  }
+}

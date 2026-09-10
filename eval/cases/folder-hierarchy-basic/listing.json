@@ -1,0 +1,27 @@
+{
+  "roots": [
+    {
+      "dataLocationIdentifier": "raw",
+      "rootStoragePathIdentifier": "main",
+      "entries": [
+        ".DS_Store",
+        "m110/",
+        "m110/20250523_baseline/",
+        "m110/20250523_baseline/movie.tif",
+        "m110/20250523_baseline/notes.txt",
+        "m110/20250601_stim/",
+        "m110/20250601_stim/movie.tif",
+        "m110/20250601_stim/movie_backup.tif",
+        "m110/README.txt",
+        "m220/",
+        "m220/20250524_baseline/",
+        "m220/20250524_baseline/notes.txt",
+        "m220/20250524_baseline/sub/",
+        "m220/20250524_baseline/sub/x.dat",
+        "m220/20250524_baseline_copy/",
+        "temp/",
+        "temp/old.tif"
+      ]
+    }
+  ]
+}

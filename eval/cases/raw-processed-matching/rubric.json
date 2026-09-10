@@ -1,0 +1,39 @@
+{
+  "description": "Two locations, different naming, one entity set. The feature DSM exists for.",
+  "referenceConfig": "conformance/raw-processed-matching/config.json",
+  "entityCounts": {
+    "subject": 3,
+    "session": 4
+  },
+  "hierarchy": {
+    "subject": [],
+    "session": [
+      "subject"
+    ]
+  },
+  "minEntitiesWithLocations": {
+    "subject": 2,
+    "session": 4
+  },
+  "maxNoMatch": 3,
+  "minMultiLocationEntities": 1,
+  "forbiddenIssueCodes": [
+    "metadata-conflict"
+  ],
+  "metadataValueSets": {
+    "session": [
+      [
+        "2025-05-23",
+        "10:00:00"
+      ],
+      [
+        "2025-05-23",
+        "14:30:00"
+      ],
+      [
+        "2025-05-24",
+        "09:00:00"
+      ]
+    ]
+  }
+}
