@@ -1,6 +1,10 @@
 {
   "description": "Two folder levels, noise to exclude, a duplicate folder the skill may treat either way.",
   "referenceConfig": "conformance/folder-hierarchy-basic/config.json",
+  "entityTypes": [
+    "subject",
+    "session"
+  ],
   "entityCounts": {
     "subject": 2,
     "session": [

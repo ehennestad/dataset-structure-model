@@ -1,6 +1,10 @@
 {
   "description": "Two locations, different naming, one entity set. The feature DSM exists for.",
   "referenceConfig": "conformance/raw-processed-matching/config.json",
+  "entityTypes": [
+    "subject",
+    "session"
+  ],
   "entityCounts": {
     "subject": 3,
     "session": 4

@@ -1,0 +1,1 @@
+../../../docs/guides/ai-agent-instructions.md

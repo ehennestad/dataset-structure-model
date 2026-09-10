@@ -121,32 +121,62 @@ def _match_value_sets(records, required: List[List[str]]) -> Optional[str]:
     return None
 
 
+def _entity_slots(config, rubric: dict):
+    """Map the rubric's entity-type labels onto the candidate's own names, by position.
+
+    A listing cannot tell you that `m110` is a "subject" rather than an "animal" or a
+    "cage" - that is a semantic choice the skill puts to the user, so the eval must not
+    require a particular word. Rubric labels are therefore *slots*, resolved against the
+    candidate's `entityTypes` in declaration order (which the schema already pins to
+    layout order). A config naming them animal/recording is graded exactly like one
+    naming them subject/session.
+    """
+    labels = rubric.get("entityTypes")
+    actual = config.entity_types
+    if not labels:
+        return {name: name for name in actual}, None
+    if len(labels) != len(actual):
+        return None, (f"expected {len(labels)} entity type(s) ({', '.join(labels)}), "
+                      f"config declares {len(actual)} ({', '.join(actual) or 'none'})")
+    return dict(zip(labels, actual)), None
+
+
 def _rubric_checks(config, result, rubric: dict) -> List[Check]:
     checks = []
     records = result.records
+
+    slots, problem = _entity_slots(config, rubric)
+    if problem:
+        return [Check("entity types", False, problem)]
+    resolve = lambda label: slots.get(label, label)  # noqa: E731
 
     expected_counts = rubric.get("entityCounts")
     if expected_counts is not None:
         # A value may be an exact count or [min, max]: some listings genuinely admit
         # two defensible answers (whether a `_copy` folder is its own entity, say).
-        actual = {t: sum(1 for r in records if r.entity_type == t) for t in expected_counts}
+        actual = {label: sum(1 for r in records if r.entity_type == resolve(label))
+                  for label in expected_counts}
         wrong = []
-        for entity_type, allowed in expected_counts.items():
+        for label, allowed in expected_counts.items():
             low, high = allowed if isinstance(allowed, list) else (allowed, allowed)
-            if not low <= actual[entity_type] <= high:
+            if not low <= actual[label] <= high:
                 span = f"{low}" if low == high else f"{low}-{high}"
-                wrong.append(f"{entity_type}: {actual[entity_type]} (want {span})")
-        extra = sorted({r.entity_type for r in records} - set(expected_counts))
+                wrong.append(f"{resolve(label)}: {actual[label]} (want {span})")
+        extra = sorted({r.entity_type for r in records}
+                       - {resolve(label) for label in expected_counts})
         if extra:
             wrong.append("unexpected entity type(s): " + ", ".join(extra))
         checks.append(Check("entity counts", not wrong, "; ".join(wrong)))
 
     hierarchy = rubric.get("hierarchy")
     if hierarchy is not None:
+        expected_chain = {resolve(label): [resolve(p) for p in chain]
+                          for label, chain in hierarchy.items()}
         wrong = [
-            f"{r.entity_type}{r.identity}: parents {_parent_chain(r)} != {hierarchy[r.entity_type]}"
+            f"{r.entity_type}{r.identity}: parents {_parent_chain(r)} "
+            f"!= {expected_chain[r.entity_type]}"
             for r in records
-            if r.entity_type in hierarchy and _parent_chain(r) != hierarchy[r.entity_type]
+            if r.entity_type in expected_chain and _parent_chain(r) != expected_chain[r.entity_type]
         ]
         checks.append(Check("parent hierarchy", not wrong, "; ".join(wrong[:3])))
 
@@ -169,7 +199,8 @@ def _rubric_checks(config, result, rubric: dict) -> List[Check]:
             f"{len(matched)} entit(ies) resolve to one record spanning >1 location, need {minimum}",
         ))
 
-    for entity_type, minimum in (rubric.get("minEntitiesWithLocations") or {}).items():
+    for label, minimum in (rubric.get("minEntitiesWithLocations") or {}).items():
+        entity_type = resolve(label)
         # An entity whose level is structural still gets a record, because the walker
         # infers ancestors from a descendant's extracted id - but with `locations: []`,
         # so where its data lives is lost. This is what separates "modelled the folder"
@@ -202,7 +233,8 @@ def _rubric_checks(config, result, rubric: dict) -> List[Check]:
             "; ".join(collisions) or f"{' and '.join(group)} land in separate records",
         ))
 
-    for entity_type, required in (rubric.get("metadataValueSets") or {}).items():
+    for label, required in (rubric.get("metadataValueSets") or {}).items():
+        entity_type = resolve(label)
         subset = [r for r in records if r.entity_type == entity_type]
         note = _match_value_sets(subset, required)
         checks.append(Check(f"metadata values ({entity_type})", note is None, note or ""))
@@ -222,7 +254,25 @@ def grade(case_dir: pathlib.Path, config_path: pathlib.Path) -> List[Check]:
 
     checks = [Check("validates", True, "schema, cross-references and no DRAFT blocks")]
     checks += _static_checks(config.doc, rubric)
+
     listing = load_listing(case_dir / "listing.json")
+    # The config has to use the identifiers the listing was built with, or the walk cannot
+    # resolve its roots. Reported as a check rather than left to raise KeyError from walk().
+    declared = {(loc["identifier"], rp["identifier"])
+                for loc in config.doc.get("dataLocations", [])
+                for rp in (loc.get("filesystemSource") or {}).get("rootStoragePaths", [])}
+    needed = {(root.data_location, root.root_storage_path) for root in listing.roots}
+    missing = sorted(needed - declared)
+    checks.append(Check(
+        "listing identifiers resolve",
+        not missing,
+        "the listing names " + ", ".join(f"{loc}/{root}" for loc, root in missing)
+        + "; the config declares " + (", ".join(f"{loc}/{root}" for loc, root in sorted(declared)) or "none")
+        if missing else "",
+    ))
+    if missing:
+        return checks
+
     result = walk(config, listing, ExtractorRegistry())
     checks += _rubric_checks(config, result, rubric)
     return checks

@@ -1,6 +1,10 @@
 {
   "description": "File-level entities sharing one folder. Carries the substring-collision trap.",
   "referenceConfig": "conformance/flat-session-files/config.json",
+  "entityTypes": [
+    "subject",
+    "session"
+  ],
   "entityCounts": {
     "subject": 2,
     "session": [

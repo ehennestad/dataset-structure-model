@@ -1,6 +1,10 @@
 {
   "description": "A value the reference reads with a registered function. A regex must do instead.",
   "referenceConfig": "eval/cases/function-extractor/reference.json",
+  "entityTypes": [
+    "subject",
+    "session"
+  ],
   "entityCounts": {
     "subject": 1,
     "session": 3

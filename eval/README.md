@@ -17,10 +17,27 @@ In `folder-hierarchy-basic` the reference config extracts `session_id` as `basel
 
 The conformance cases are adversarial reader fixtures, not datasets anyone would hand the skill. So the grader is blind to field naming, to identity values, and to which extraction method was used. It grades what the config **achieves** when walked.
 
+## Entity-type names are slots, not names
+
+A listing cannot tell you that `m110` is a "subject" rather than an "animal", a "cage" or
+a "cohort". That is a semantic choice the skill puts to the user, so requiring a
+particular word would fail a correct config.
+
+A rubric therefore declares `entityTypes` as an **ordered list of labels**, outermost
+first, and the grader resolves them against the candidate's own `entityTypes` in
+declaration order — which the schema already pins to layout order. Every other rubric key
+that names an entity type is read through that mapping. A config calling them
+`animal`/`recording` is graded exactly like one calling them `subject`/`session`;
+`tests/test_eval_grader.py` renames them in every case to keep it that way.
+
+The count must match before anything else is comparable, so modelling one entity type
+where two were expected fails at `entity types` and stops there.
+
 ## What a rubric may assert
 
 | Key | Fails when |
 |-----|-----------|
+| `entityTypes` | The candidate declares a different number of entity types than the rubric has slots |
 | `entityCounts` | The record count per type is outside the stated exact value or `[min, max]` range, or an unexpected entity type appears |
 | `hierarchy` | A record's chain of entity-typed ancestors is not the stated one |
 | `minEntitiesWithLocations` | Too few records of a type have a folder or files of their own — the entity was left to be inferred rather than modelled |
@@ -29,6 +46,7 @@ The conformance cases are adversarial reader fixtures, not datasets anyone would
 | `forbiddenIssueCodes` | The walk raises an issue code the case rules out |
 | `metadataValueSets` | No distinct record of that type carries all the values in each listed set |
 | `pathsMustNotShareRecord` | Two listed paths end up under one identity |
+| *(always)* `listing identifiers resolve` | The config's `dataLocations[].identifier` / `rootStoragePaths[].identifier` are not the ones the listing was built with |
 
 Every value is a floor or a ceiling, never an exact transcript. A skill that finds more structure than the reference still passes.
 
@@ -60,7 +78,18 @@ Two things keep them honest, both in `tests/test_eval_grader.py`:
 1. **Every rubric is satisfied by a reference config.** `referenceConfig` points at the case's conformance config, or at a local `reference.json` where that config would fail its own rubric — `function-extractor`'s does, by using a function. A rubric nobody has satisfied might be impossible.
 2. **Every check has a test that breaks a reference config and asserts the check fires.** A grader that passes everything is worth nothing.
 
-Writing those tests already corrected one rubric. Making the subject level structural does *not* flatten the hierarchy — the walker infers the ancestor from the still-extracted `subject_id`, as `docs/guides/conformance.md` specifies. What it loses is the subject's folder, which nothing graded until `minEntitiesWithLocations` was added.
+Three corrections came out of actually running it, which is the argument for building the
+harness before the skill:
+
+1. Making the subject level structural does *not* flatten the hierarchy — the walker infers
+   the ancestor from the still-extracted `subject_id`, as `docs/guides/conformance.md`
+   specifies. What it loses is the subject's folder, which nothing graded until
+   `minEntitiesWithLocations` was added.
+2. Grading was not naming-blind after all: rubric keys named entity types directly, so a
+   correct config calling them `animal`/`recording` failed. Hence slots.
+3. A config whose location identifiers differ from the listing's raised a bare `KeyError`
+   out of the walker. The grader now reports it as a check. The underlying reader crash is
+   recorded in the work item and is not fixed here.
 
 ## Adding a case
 

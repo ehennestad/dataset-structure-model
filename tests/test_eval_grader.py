@@ -138,8 +138,11 @@ def test_modelling_only_sessions_is_caught(tmp_path):
     doc.pop("entityRelationships", None)
 
     checks = grade_doc("flat-session-files", doc, tmp_path)
-    assert "parent hierarchy" in failures(checks)
-    assert "entity counts" in failures(checks)
+    # Slots are positional, so one entity type where two were expected fails there first
+    # and nothing further is comparable. That is the right signal: the omission is the
+    # defect, not whatever the surviving records happen to look like.
+    assert "entity types" in failures(checks)
+    assert "1 (session)" in checks["entity types"].detail
 
 
 def test_unextracted_dates_are_caught(tmp_path):
@@ -194,3 +197,90 @@ def test_entity_count_accepts_a_declared_range(tmp_path):
 
     checks = grade_doc("folder-hierarchy-basic", doc, tmp_path)
     assert not failures(checks), failures(checks)
+
+
+# --- the grader must be blind to naming -------------------------------------------
+
+def rename_entity_types(doc: dict, mapping: dict) -> dict:
+    """Rename entity types throughout. No literal folder text is involved."""
+    doc = copy.deepcopy(doc)
+    for entity in doc.get("entityTypes", []):
+        entity["name"] = mapping.get(entity["name"], entity["name"])
+    for definition in doc.get("metadataDefinitions", {}).values():
+        definition["ofEntity"] = mapping.get(definition["ofEntity"], definition["ofEntity"])
+    for relation in doc.get("entityRelationships", []):
+        for key in ("sourceEntity", "targetEntity"):
+            relation[key] = mapping.get(relation[key], relation[key])
+    for location in doc.get("dataLocations", []):
+        for level in (location.get("filesystemSource") or {}).get("entityLayout", []):
+            if "entityType" in level:
+                level["entityType"] = mapping.get(level["entityType"], level["entityType"])
+    return doc
+
+
+def rename_metadata_key(doc: dict, old: str, new: str) -> dict:
+    """Rename a metadata definition, including `{token}` uses but not literal path text."""
+    doc = copy.deepcopy(doc)
+    definitions = doc["metadataDefinitions"]
+    definitions[new] = definitions.pop(old)
+    definitions[new]["name"] = new
+    for entity in doc.get("entityTypes", []):
+        if entity.get("identifierRef") == old:
+            entity["identifierRef"] = new
+    for location in doc.get("dataLocations", []):
+        source = location.get("filesystemSource") or {}
+        for entry in source.get("metadataMapping", []):
+            if entry["metadataRef"] == old:
+                entry["metadataRef"] = new
+        for level in source.get("entityLayout", []):
+            if "pathComponentTemplate" in level:
+                level["pathComponentTemplate"] = level["pathComponentTemplate"].replace(
+                    "{" + old + "}", "{" + new + "}")
+            for pattern in level.get("filePatterns", []):
+                pattern["pattern"] = pattern["pattern"].replace(
+                    "{" + old + "}", "{" + new + "}")
+    return doc
+
+
+@pytest.mark.parametrize("case", case_names())
+def test_renaming_entity_types_does_not_change_the_grade(case, tmp_path):
+    """A listing cannot say `m110` is a "subject"; the skill asks the user. So the rubric
+    treats its labels as slots resolved positionally, and animal/recording grades the same."""
+    doc = rename_entity_types(reference_config(case),
+                              {"subject": "animal", "session": "recording"})
+    assert not failures(grade_doc(case, doc, tmp_path))
+
+
+@pytest.mark.parametrize("case", case_names())
+def test_renaming_metadata_fields_does_not_change_the_grade(case, tmp_path):
+    """Nothing is graded on a metadata key - only on the values extracted."""
+    doc = reference_config(case)
+    if "session_id" not in doc.get("metadataDefinitions", {}):
+        pytest.skip("case has no session_id to rename")
+    doc = rename_metadata_key(doc, "session_id", "recording_key")
+    assert not failures(grade_doc(case, doc, tmp_path))
+
+
+def test_a_wrong_number_of_entity_types_is_caught(tmp_path):
+    """Slots are positional, so the count has to match before anything is comparable."""
+    doc = reference_config("folder-hierarchy-basic")
+    doc["entityTypes"].append({"name": "trial", "identifierRef": "trial_id"})
+    doc["metadataDefinitions"]["trial_id"] = {
+        "name": "trial_id", "dataType": "string", "ofEntity": "trial"}
+
+    checks = grade_doc("folder-hierarchy-basic", doc, tmp_path)
+    assert "entity types" in failures(checks)
+
+
+def test_identifier_mismatch_is_reported_not_crashed(tmp_path):
+    """The config must use the identifiers the listing was built with.
+
+    Left unchecked this raises a bare KeyError out of the walker, which is a crash rather
+    than a diagnostic - see the note in the work item.
+    """
+    doc = reference_config("folder-hierarchy-basic")
+    doc["dataLocations"][0]["identifier"] = "acquisition"
+
+    checks = grade_doc("folder-hierarchy-basic", doc, tmp_path)
+    assert "listing identifiers resolve" in failures(checks)
+    assert "acquisition" in checks["listing identifiers resolve"].detail

@@ -1,6 +1,10 @@
 {
   "description": "A structural level mid-tree, and a sibling folder that must not match.",
   "referenceConfig": "conformance/extraction-methods/config.json",
+  "entityTypes": [
+    "subject",
+    "session"
+  ],
   "entityCounts": {
     "subject": 2,
     "session": 3
