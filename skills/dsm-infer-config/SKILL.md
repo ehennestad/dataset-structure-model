@@ -35,7 +35,13 @@ If it is missing, install it from a clone of the `dataset-structure-model` repos
 pip install -e /path/to/dataset-structure-model      # or: pipx install /path/to/...
 ```
 
-Ask the user where the clone is rather than searching the whole disk. If there is no clone and they do not want one, say plainly that you can write a config but cannot verify it, and that an unverified config is a guess.
+Ask the user where the clone is rather than searching the whole disk. A clone also runs without installing, which is the right choice when the repository must not be touched:
+
+```bash
+PYTHONPATH=/path/to/dataset-structure-model/src/python python3 -m dsm --help
+```
+
+If there is no clone and they do not want one, say plainly that you can write a config but cannot verify it, and that an unverified config is a guess.
 
 ## Step 2 - Build a listing
 
@@ -76,7 +82,9 @@ Read the output like this:
 - **A shape with count 1 beside a near-identical high-count shape** - the outlier. Either a stray file to exclude, or the case that breaks a careless pattern. `A1#3-#8-#4_A3.A3` next to `A1#3-#8-#3_A3.A3` is a four-digit running number among three-digit ones: a pattern that does not pin the width will merge them.
 - **Extension histogram at file depths** - the raw material for `filePatterns`.
 
-Use `--depth N` to see every name at one depth, and `--loose` to drop run lengths when you want broader families.
+Use `--depth N` to see every name at one depth, and `--loose` to drop run lengths when you want broader families. File depths often explode into dozens of shapes because a parameter in the name varies (`IV(-70mV)`, `IV(-80mV)`, `Cc_step(100pA)`); run `--loose` there first and use the widths view only for the levels you are writing patterns for.
+
+**Read the dataset's own documentation before you decide anything.** A `README`, a data descriptor (`.docx`, `.pdf`, `.md`), a `dataset_description.json` or a `MANIFEST` in the listing was written by the people who made the layout. It usually states what the folder levels are, what each name token means and which subfolders are expected, and that settles most of the semantic questions Step 9 would otherwise put to the user. Read it, quote it in the config's `description` fields, and add an `excludePatterns` entry for it on the level where it sits. Check its claims against the survey; a descriptor that promises a per-entity notes file the listing does not contain is a finding worth reporting.
 
 ## Step 4 - Decide what each level is
 
@@ -137,7 +145,7 @@ Reference levels by **name**, not by index. `entityLayoutLevel: null` means the 
 
 ## Step 7 - File patterns and exclusions
 
-`filePatterns` on a level names the files an entity is expected to have. Use `{field}` tokens rather than bare substrings - `"^{session_id}_raw\\.tif$"`, not `"raw.tif"` - so membership means "instantiates this template for this entity". Set `isRequired` only where a missing file genuinely means incomplete data, and `cardinality: "one"` only where a second match is an error.
+`filePatterns` on a level names the files an entity is expected to have. Candidates are the **direct children** of the entity folder only: a file inside a subfolder of the entity (`<cell>/recordings/*.abf`) cannot be named by a pattern, so completeness cannot be checked for it. Name such subfolders in `additionalFolders` and say in the location's `description` what they hold. Use `{field}` tokens rather than bare substrings - `"^{session_id}_raw\\.tif$"`, not `"raw.tif"` - so membership means "instantiates this template for this entity". Set `isRequired` only where a missing file genuinely means incomplete data, and `cardinality: "one"` only where a second match is an error.
 
 Every entry the survey showed that is not data needs an `excludePatterns` entry on its level: `^\\..*` for dotfiles, and explicit patterns for `temp/`, `scratch/`, `calibration/`, `README.txt`. An excluded entry is accounted for; an unexplained one is a defect you will see in Step 8.
 

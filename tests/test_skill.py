@@ -51,6 +51,17 @@ def test_loose_shape_hides_the_trap():
             == survey_module.shape("m110-20250510-0010_raw.tif", widths=False))
 
 
+@pytest.mark.parametrize("name,expected", [
+    ("2019_07_09_0000_IV(-70mV).abf", ".abf"),
+    ("08-07-2019 C4_shrinkcorr_3.06.rar", ".rar"),
+    ("archive.tar.gz", ".tar.gz"),
+    ("README", "(none)"),
+])
+def test_extension_ignores_numbers_in_the_stem(name, expected):
+    """A version or scale number before the suffix must not split the histogram."""
+    assert survey_module.extension(name) == expected
+
+
 @pytest.mark.parametrize("case", sorted(p.name for p in (REPO_ROOT / "eval" / "cases").iterdir()
                                         if p.is_dir()))
 def test_survey_runs_on_every_eval_listing(case):

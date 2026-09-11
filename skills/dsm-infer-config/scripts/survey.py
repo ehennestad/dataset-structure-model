@@ -42,6 +42,20 @@ def shape(name: str, widths: bool = True) -> str:
     return "".join(out)
 
 
+def extension(name: str) -> str:
+    """The trailing suffixes of a file name, e.g. `.abf` or `.tar.gz`.
+
+    Only suffixes that start with a letter count, so a version or scale number in the
+    stem (`cell_shrinkcorr_3.06.rar`) yields `.rar` rather than `.06.rar`.
+    """
+    kept = []
+    for suffix in reversed(pathlib.PurePosixPath(name).suffixes):
+        if not re.fullmatch(r"\.[A-Za-z][A-Za-z0-9]*", suffix):
+            break
+        kept.append(suffix)
+    return "".join(reversed(kept)) or "(none)"
+
+
 def survey(listing: dict, only_depth=None, max_examples=4, widths=True) -> str:
     lines = []
     for root in listing.get("roots", []):
@@ -75,8 +89,7 @@ def survey(listing: dict, only_depth=None, max_examples=4, widths=True) -> str:
                     more = "" if len(shown) == len(sample) else f", +{len(sample) - len(shown)} more"
                     lines.append(f"    {label:6} {count:5}x  {shp:30} {', '.join(shown)}{more}")
                 if label == "file":
-                    exts = collections.Counter(
-                        "".join(pathlib.PurePosixPath(n).suffixes) or "(none)" for n in group)
+                    exts = collections.Counter(extension(n) for n in group)
                     lines.append("    " + " ".join(f"{e}:{c}" for e, c in exts.most_common(8)))
         lines.append("")
     return "\n".join(lines)
