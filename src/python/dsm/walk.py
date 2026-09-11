@@ -28,7 +28,6 @@ class _LocationAccumulator:
     def __init__(self, file_system_type: str):
         self.file_system_type = file_system_type
         self.paths: List[str] = []
-        self.values: List[Dict[str, Any]] = []  # own-field values per path
 
 
 class _Entity:
@@ -37,6 +36,9 @@ class _Entity:
         self.identity = identity
         self.parents = parents
         self.locations: "OrderedDict[Tuple[str, str], _LocationAccumulator]" = OrderedDict()
+        # (location, field values) per path the entity was read from, in walk order: its own paths where
+        # it has a level, and the descendant paths it was inferred from where it has none
+        self.observations: List[Tuple[str, Dict[str, Any]]] = []
         self.unresolved: Set[str] = set()
 
     @property
@@ -117,18 +119,21 @@ class Walker:
         full_path = root_path + "/" + rel_path.rstrip("/")
         seed = {k: v for _, identity in ancestors for k, v in identity.items()}
 
-        # ancestors that have no level of their own in this location are read from this path
+        # ancestors that have no level of their own in this location are read from this path;
+        # every field of theirs this path yields is kept for their record, not only the identity
         inferred: Parents = []
+        inferred_values: Dict[str, Tuple[Dict[str, Any], Set[str]]] = {}
         for ancestor_type in self.config.types_before(entity_type):
             if any(t == ancestor_type for t, _ in ancestors):
                 continue
             if not self.config.rules_for(loc_id, ancestor_type):
                 continue
-            values, _ = evaluate_fields(self.config, loc_id, rel_path, ancestor_type, seed, self.registry, full_path)
+            values, unresolved = evaluate_fields(self.config, loc_id, rel_path, ancestor_type, seed, self.registry, full_path)
             keys = self.config.identity_keys(ancestor_type)
             if all(values.get(k) is not None for k in keys):
                 identity = {k: values[k] for k in keys}
                 inferred.append((ancestor_type, identity))
+                inferred_values[ancestor_type] = (values, unresolved)
                 seed.update(identity)
         parents = sorted(ancestors + inferred, key=lambda p: self.config.type_order(p[0]))
         seed = {k: v for _, identity in parents for k, v in identity.items()}
@@ -142,11 +147,14 @@ class Walker:
         entity = self._get_or_create(entity_type, identity, parents)
         accumulator = entity.locations.setdefault((loc_id, root_id), _LocationAccumulator(file_system_type))
         accumulator.paths.append(rel_path)
-        accumulator.values.append(values)
+        entity.observations.append((loc_id, values))
         entity.unresolved |= unresolved
         for ancestor_type, ancestor_identity in inferred:
             ancestor_parents = [p for p in parents if self.config.type_order(p[0]) < self.config.type_order(ancestor_type)]
-            self._get_or_create(ancestor_type, ancestor_identity, ancestor_parents)
+            ancestor = self._get_or_create(ancestor_type, ancestor_identity, ancestor_parents)
+            ancestor_values, ancestor_unresolved = inferred_values[ancestor_type]
+            ancestor.observations.append((loc_id, ancestor_values))
+            ancestor.unresolved |= ancestor_unresolved
         return entity
 
     def _get_or_create(self, entity_type, identity, parents) -> _Entity:
@@ -164,10 +172,11 @@ class Walker:
         issues: List[Issue] = []
         metadata: Dict[str, Any] = {k: v for _, identity in entity.parents for k, v in identity.items()}
 
-        # own fields: union over every path in every visited location
+        # own fields: union over every path the entity was read from (its own, or the descendants it was
+        # inferred from), in walk order
         mapped_fields: List[str] = []
         function_fields: Dict[str, str] = {}
-        for (loc_id, _), _acc in entity.locations.items():
+        for loc_id in dict.fromkeys(loc for loc, _ in entity.observations):
             for item in cfg.rules_for(loc_id, entity.entity_type):
                 if item["metadataRef"] not in mapped_fields:
                     mapped_fields.append(item["metadataRef"])
@@ -175,13 +184,12 @@ class Walker:
                     function_fields[item["metadataRef"]] = item["extraction"]["extractorFunction"]
         for field_name in mapped_fields:
             distinct: List[Any] = []
-            for acc in entity.locations.values():
-                for values in acc.values:
-                    value = values.get(field_name)
-                    if value is not None and value not in distinct:
-                        distinct.append(value)
+            for _, values in entity.observations:
+                value = values.get(field_name)
+                if value is not None and value not in distinct:
+                    distinct.append(value)
             if len(distinct) > 1:
-                issues.append(Issue("metadata-conflict", f"{field_name}: locations disagree {distinct}; using {distinct[0]!r}"))
+                issues.append(Issue("metadata-conflict", f"{field_name}: sources disagree {distinct}; using {distinct[0]!r}"))
             if distinct:
                 metadata[field_name] = distinct[0]
             elif field_name in function_fields and function_fields[field_name] in entity.unresolved:

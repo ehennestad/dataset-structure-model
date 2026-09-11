@@ -1,0 +1,161 @@
+{
+  "records": [
+    {
+      "entityType": "subject",
+      "identity": {
+        "subject_id": "m110"
+      },
+      "parents": [],
+      "locations": [],
+      "metadata": {
+        "subject_id": "m110",
+        "subject_sex": "F"
+      },
+      "issues": [
+        {
+          "code": "extraction-failed",
+          "message": "subject_cohort: no value and no defaultValue"
+        }
+      ]
+    },
+    {
+      "entityType": "subject",
+      "identity": {
+        "subject_id": "m220"
+      },
+      "parents": [],
+      "locations": [],
+      "metadata": {
+        "subject_id": "m220",
+        "subject_sex": "F"
+      },
+      "issues": [
+        {
+          "code": "metadata-conflict",
+          "message": "subject_sex: sources disagree ['F', 'M']; using 'F'"
+        },
+        {
+          "code": "extraction-failed",
+          "message": "subject_cohort: no value and no defaultValue"
+        }
+      ]
+    },
+    {
+      "entityType": "session",
+      "identity": {
+        "session_id": "m110-F-20250510"
+      },
+      "parents": [
+        {
+          "entityType": "subject",
+          "identity": {
+            "subject_id": "m110"
+          }
+        }
+      ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw",
+          "rootStoragePathIdentifier": "main",
+          "fileSystemType": "folder",
+          "paths": [
+            "m110-F-20250510/"
+          ]
+        }
+      ],
+      "metadata": {
+        "session_id": "m110-F-20250510",
+        "session_date": "2025-05-10",
+        "subject_id": "m110"
+      }
+    },
+    {
+      "entityType": "session",
+      "identity": {
+        "session_id": "m110-F-20250601"
+      },
+      "parents": [
+        {
+          "entityType": "subject",
+          "identity": {
+            "subject_id": "m110"
+          }
+        }
+      ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw",
+          "rootStoragePathIdentifier": "main",
+          "fileSystemType": "folder",
+          "paths": [
+            "m110-F-20250601/"
+          ]
+        }
+      ],
+      "metadata": {
+        "session_id": "m110-F-20250601",
+        "session_date": "2025-06-01",
+        "subject_id": "m110"
+      }
+    },
+    {
+      "entityType": "session",
+      "identity": {
+        "session_id": "m220-F-20250530"
+      },
+      "parents": [
+        {
+          "entityType": "subject",
+          "identity": {
+            "subject_id": "m220"
+          }
+        }
+      ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw",
+          "rootStoragePathIdentifier": "main",
+          "fileSystemType": "folder",
+          "paths": [
+            "m220-F-20250530/"
+          ]
+        }
+      ],
+      "metadata": {
+        "session_id": "m220-F-20250530",
+        "session_date": "2025-05-30",
+        "subject_id": "m220"
+      }
+    },
+    {
+      "entityType": "session",
+      "identity": {
+        "session_id": "m220-M-20250524"
+      },
+      "parents": [
+        {
+          "entityType": "subject",
+          "identity": {
+            "subject_id": "m220"
+          }
+        }
+      ],
+      "locations": [
+        {
+          "dataLocationIdentifier": "raw",
+          "rootStoragePathIdentifier": "main",
+          "fileSystemType": "folder",
+          "paths": [
+            "m220-M-20250524/"
+          ]
+        }
+      ],
+      "metadata": {
+        "session_id": "m220-M-20250524",
+        "session_date": "2025-05-24",
+        "subject_id": "m220"
+      }
+    }
+  ],
+  "unmatched": []
+}

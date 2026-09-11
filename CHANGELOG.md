@@ -5,6 +5,9 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- An ancestor inferred from its descendants' names now carries every field of its type those names yield, not only its identity. A cell with no folder gets the recording date and slice number read from its ABF file names; descendants that disagree raise `metadata-conflict`. Both readers implement it; the new `inferred-ancestor-fields` conformance case pins it. Previously the values were evaluated and discarded without an issue.
+
 ### Fixed
 - `valueFormat` accepts a two-digit year (`yy`). The Python reader translated only `yyyy`, so `yyMMdd` failed with `extraction-failed` while the MATLAB reader parsed it; the readers disagreed on the same config.
 - Two-digit years take a fixed pivot, 1969–2068, in both readers. MATLAB's `datetime` default pivot moves with the current year; the reader now passes `PivotYear` 1969.

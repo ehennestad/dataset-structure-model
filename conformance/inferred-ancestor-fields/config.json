@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    { "name": "subject", "isPrimary": true, "identifierRef": "subject_id" },
+    { "name": "session", "identifierRef": "session_id" }
+  ],
+  "metadataDefinitions": {
+    "subject_id":     { "name": "subject_id", "dataType": "string", "ofEntity": "subject", "validation": { "pattern": "^m\\d{3}$" } },
+    "subject_sex":    { "name": "subject_sex", "dataType": "string", "ofEntity": "subject", "description": "Read from every session folder of the subject; the sessions should agree" },
+    "subject_cohort": { "name": "subject_cohort", "dataType": "string", "ofEntity": "subject", "description": "No session folder carries it" },
+    "session_id":     { "name": "session_id", "dataType": "string", "ofEntity": "session" },
+    "session_date":   { "name": "session_date", "dataType": "date", "ofEntity": "session" }
+  },
+  "dataLocations": [
+    {
+      "identifier": "raw",
+      "displayName": "Raw",
+      "description": "Session folders named <subject>-<sex>-<date>; there are no subject folders",
+      "dataCategory": "raw",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [ { "identifier": "main", "path": "/data/raw" } ],
+        "entityLayout": [
+          { "name": "sessions", "entityType": "session", "matchPattern": "^m\\d{3}-[FM]-\\d{8}$" }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "subject_id",     "extraction": { "method": "regex", "pattern": "^(m\\d{3})-", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "subject_sex",    "extraction": { "method": "regex", "pattern": "^m\\d{3}-([FM])-", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "subject_cohort", "extraction": { "method": "regex", "pattern": "^cohort-(\\w+)", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_id",     "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "sessions" } },
+          { "metadataRef": "session_date",   "extraction": { "method": "regex", "pattern": "-(\\d{8})$", "valueFormat": "yyyyMMdd", "entityLayoutLevel": "sessions" } }
+        ]
+      }
+    }
+  ]
+}

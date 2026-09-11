@@ -172,7 +172,8 @@ def test_cli_validate_and_walk(capsys):
 def test_cli_conformance(capsys):
     assert main(["conformance", str(CONFORMANCE_DIR)]) == 0
     out = capsys.readouterr().out
-    assert "7 passed, 0 failed, 0 skipped" in out
+    case_count = sum(1 for p in CONFORMANCE_DIR.iterdir() if p.is_dir())
+    assert f"{case_count} passed, 0 failed, 0 skipped" in out
 
 
 def test_all_cases_run(capsys):

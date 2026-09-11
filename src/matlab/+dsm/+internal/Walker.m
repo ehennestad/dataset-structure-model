@@ -140,8 +140,11 @@ classdef Walker < handle
             fullPath = rootPath + "/" + regexprep(string(relPath), "/$", "");
             seed = seedFrom(ancestors);
 
-            % ancestors that have no level of their own in this location are read from this path
+            % ancestors that have no level of their own in this location are read from this path;
+            % every field of theirs this path yields is kept for their record, not only the identity
             inferred = {};
+            inferredValues = {};
+            inferredUnresolved = {};
             for ancestorType = config.typesBefore(entityType)
                 if any(cellfun(@(a) string(a{1}) == ancestorType, ancestors))
                     continue
@@ -149,7 +152,7 @@ classdef Walker < handle
                 if isempty(config.rulesFor(locId, ancestorType))
                     continue
                 end
-                values = dsm.internal.evaluateFields(config, locId, relPath, ancestorType, seed, obj.Registry, fullPath);
+                [values, unresolved] = dsm.internal.evaluateFields(config, locId, relPath, ancestorType, seed, obj.Registry, fullPath);
                 keys = config.identityKeys(ancestorType);
                 if all(arrayfun(@(k) isfield(values, k) && ~dsm.internal.isNone(values.(k)), keys))
                     ancestorIdentity = struct();
@@ -158,6 +161,8 @@ classdef Walker < handle
                         seed.(k) = values.(k);
                     end
                     inferred{end+1} = {ancestorType, ancestorIdentity}; %#ok<AGROW>
+                    inferredValues{end+1} = values; %#ok<AGROW>
+                    inferredUnresolved{end+1} = unresolved; %#ok<AGROW>
                 end
             end
             parents = obj.sortParents([ancestors, inferred]);
@@ -180,19 +185,23 @@ classdef Walker < handle
             if isKey(entity.Locations, locationKey)
                 accumulator = entity.Locations(locationKey);
             else
-                accumulator = struct("FileSystemType", fileSystemType, "Paths", {{}}, "Values", {{}});
+                accumulator = struct("FileSystemType", fileSystemType, "Paths", {{}});
                 entity.LocationOrder(end+1) = string(locationKey);
             end
             accumulator.Paths{end+1} = char(relPath);
-            accumulator.Values{end+1} = values;
             entity.Locations(locationKey) = accumulator;
+            entity.Observations{end+1} = {string(locId), values};
             entity.Unresolved = unique([entity.Unresolved, unresolved]);
             obj.Entities(char(entityKey)) = entity;
 
             for i = 1:numel(inferred)
                 ancestorType = inferred{i}{1};
                 ancestorParents = parents(cellfun(@(p) config.typeOrder(p{1}) < config.typeOrder(ancestorType), parents));
-                obj.getOrCreate(ancestorType, inferred{i}{2}, ancestorParents);
+                ancestorKey = obj.getOrCreate(ancestorType, inferred{i}{2}, ancestorParents);
+                ancestor = obj.Entities(char(ancestorKey));
+                ancestor.Observations{end+1} = {string(locId), inferredValues{i}};
+                ancestor.Unresolved = unique([ancestor.Unresolved, inferredUnresolved{i}]);
+                obj.Entities(char(ancestorKey)) = ancestor;
             end
         end
 
@@ -210,7 +219,7 @@ classdef Walker < handle
             if ~isKey(obj.Entities, char(key))
                 obj.Entities(char(key)) = struct("EntityType", string(entityType), "Identity", identity, ...
                     "Parents", {parents}, "Locations", containers.Map("KeyType", "char", "ValueType", "any"), ...
-                    "LocationOrder", string.empty(1, 0), "Unresolved", string.empty(1, 0));
+                    "LocationOrder", string.empty(1, 0), "Observations", {{}}, "Unresolved", string.empty(1, 0));
                 obj.EntityKeys(end+1) = key;
             end
         end
@@ -234,11 +243,13 @@ classdef Walker < handle
             issues = {};
             metadata = seedFrom(entity.Parents);
 
-            % own fields: union over every path in every visited location
+            % own fields: union over every path the entity was read from (its own, or the descendants
+            % it was inferred from), in walk order
+            % Observations is {{locId, values}, ...}; unique() on the location ids keeps first occurrence order
+            observedLocations = unique(cellfun(@(o) o{1}, entity.Observations), "stable");
             mappedFields = string.empty(1, 0);
             functionFields = containers.Map("KeyType", "char", "ValueType", "any");
-            for locationKey = entity.LocationOrder
-                locId = extractBefore(locationKey, "|");
+            for locId = observedLocations
                 for item = config.rulesFor(locId, entity.EntityType)
                     ref = string(item{1}.metadataRef);
                     if ~ismember(ref, mappedFields)
@@ -251,17 +262,14 @@ classdef Walker < handle
             end
             for field = mappedFields
                 distinct = {};
-                for locationKey = entity.LocationOrder
-                    accumulator = entity.Locations(char(locationKey));
-                    for values = accumulator.Values
-                        value = dsm.internal.getField(values{1}, field, []);
-                        if ~dsm.internal.isNone(value) && ~any(cellfun(@(d) isequal(d, value), distinct))
-                            distinct{end+1} = value; %#ok<AGROW>
-                        end
+                for observation = entity.Observations
+                    value = dsm.internal.getField(observation{1}{2}, field, []);
+                    if ~dsm.internal.isNone(value) && ~any(cellfun(@(d) isequal(d, value), distinct))
+                        distinct{end+1} = value; %#ok<AGROW>
                     end
                 end
                 if numel(distinct) > 1
-                    issues{end+1} = issue("metadata-conflict", sprintf("%s: locations disagree; using the first value", field)); %#ok<AGROW>
+                    issues{end+1} = issue("metadata-conflict", sprintf("%s: sources disagree; using the first value", field)); %#ok<AGROW>
                 end
                 if ~isempty(distinct)
                     metadata.(field) = distinct{1};

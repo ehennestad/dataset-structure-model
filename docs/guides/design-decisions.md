@@ -110,6 +110,12 @@ Only a fixed token subset is portable (`yyyy`, `yy`, `MM`, `dd`, `HH`, `mm`, `ss
 
 ---
 
+## Inferred ancestors carry every field their descendants' names hold
+
+An entity type with no level of its own in a location is inferred from the names below it: a subject from its session folders, a cell from its recording files. The names that carry the ancestor's identity usually carry other properties of it too — a date, a sex, a slice number — and the config author declares them with `ofEntity` pointing at the ancestor. Keeping only the identity would drop those values with nothing to show for it, and the only workaround would be to redeclare them on the descendant, where they repeat on every row and no longer describe the thing they belong to. So an inferred ancestor's metadata is the union of its fields over every descendant path that inferred it, with `metadata-conflict` when those paths disagree, exactly as fields are pooled across locations. It is the same principle as a session reading its date from a structural date folder above it, with the value flowing upward instead of downward.
+
+---
+
 ## The entity record is part of the spec
 
 Without a defined output, "supports multiple entity tables" and "portable across languages" cannot be checked. The entity record is the object readers emit and tools store; a conformance fixture is a listing plus the records it must produce.

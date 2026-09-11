@@ -178,7 +178,7 @@ A level without `entityType` is structural: part of the path, not an entity. Dat
 
 ### Missing ancestor levels
 
-A location does not need every ancestor level. A processed location may hold session folders with no subject folders above them; `subject_id` is then extracted from the session name and identifies the parent subject. See [Metadata Extraction → Which entity a value belongs to](../reference/metadata-extraction.md#which-entity-a-value-belongs-to).
+A location does not need every ancestor level. A processed location may hold session folders with no subject folders above them; `subject_id` is then extracted from the session name and identifies the parent subject, and any other subject field the session name carries attaches to that subject as well. See [Metadata Extraction → Which entity a value belongs to](../reference/metadata-extraction.md#which-entity-a-value-belongs-to).
 
 ### File levels: entities that are groups of files
 

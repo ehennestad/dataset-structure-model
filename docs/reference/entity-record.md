@@ -39,7 +39,7 @@ A DSM config says how to *read* a dataset. The **entity record** says what comes
 | `identity` | Yes | The entity's own identity field(s) and value(s) |
 | `parents` | No | Identity of each entity-typed ancestor, outermost first; structural levels do not appear. `identity` + `parents` is the full key. |
 | `locations` | Yes | Where the entity has a folder or files of its own, one entry per data location. Empty for an ancestor inferred from descendants. |
-| `metadata` | No | The entity's own fields, unioned across its locations, plus its ancestors' identity fields |
+| `metadata` | No | The entity's own fields, unioned across every path it was read from (its own paths, and the descendant paths it was inferred from where it has no level), plus its ancestors' identity fields |
 | `issues` | No | Problems found for this entity, each `{ "code", "message" }` |
 
 Each `locations` entry:

@@ -342,6 +342,28 @@ def analyse(case, record):
                 codes.add("cardinality-violation")
         files_by_location.append((loc, patterns is not None, files, complete))
 
+    # an ancestor with no level in a location is inferred from its descendants' paths there, and
+    # every field of its type that those paths yield attaches to it, not just the identity
+    mine = {"entityType": entity_type, "identity": record["identity"]}
+    for descendant in case.expected["records"]:
+        if mine not in descendant.get("parents", []):
+            continue
+        for loc in descendant["locations"]:
+            loc_id = loc["dataLocationIdentifier"]
+            if case.entity_level_index(loc_id, entity_type) is not None:
+                continue
+            for item in case.mapping(loc_id):
+                if case.definitions[item["metadataRef"]]["ofEntity"] == entity_type:
+                    fields_mapped.add(item["metadataRef"])
+                    if item["extraction"]["method"] == "function":
+                        function_fields.add(item["metadataRef"])
+            for rel_path in loc["paths"]:
+                for field, value in evaluate_rules(case, loc_id, rel_path, entity_type, parent_seed).items():
+                    if value is not SKIP:
+                        per_field.setdefault(field, set())
+                        if value is not None:
+                            per_field[field].add(value)
+
     expected_metadata = dict(parent_seed)
     for field in fields_mapped:
         if field in function_fields:
@@ -562,11 +584,6 @@ def test_extractions_reproduce_metadata(case):
                 assert metadata.get(field) == values
         extra = set(metadata) - set(result["expected_metadata"]) - result["function_fields"] - set(record["identity"])
         assert not extra, f"{case.name}: {record['identity']} has metadata not produced by any rule: {extra}"
-        if not record["locations"]:
-            # an ancestor inferred from descendants has no paths of its own: identity only
-            assert set(metadata) == set(record["identity"]), \
-                f"{case.name}: inferred {record['entityType']} {record['identity']} may carry only its identity"
-            continue
         # ancestor identity fields are extracted from the descendant's own paths
         for parent in record.get("parents", []):
             for loc in record["locations"]:

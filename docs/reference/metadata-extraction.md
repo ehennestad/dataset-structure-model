@@ -26,7 +26,7 @@ The selected level may be above the entity's own level — a session reads its d
 A field belongs to the entity type in its definition's `ofEntity`, and the value attaches to that entity:
 
 - If the location has a level for that entity type, the rule runs once per instance at that level.
-- If it does not (a processed location holding sessions directly, with no subject folders), the rule runs on the nearest descendant that does have a level, and the value identifies the **parent** entity. This is how `subject_id` extracted from a session folder name creates and identifies the subject that session belongs to.
+- If it does not (a processed location holding sessions directly, with no subject folders), the rule runs on the descendants that do have a level, and the value attaches to the **parent** entity. This is how `subject_id` extracted from a session folder name creates and identifies the subject that session belongs to. It holds for every field of the parent's type, not only its identity: a subject's sex or a cell's recording date written into the descendant names lands on the parent's record. Values are pooled across all the descendants; when they disagree the reader keeps the first in walk order and reports `metadata-conflict`.
 
 Identity of an instance = its own `identifierRef(s)` value(s) + the identities of its entity-typed ancestors, wherever those were extracted. Structural levels contribute nothing.
 

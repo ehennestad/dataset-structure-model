@@ -151,7 +151,7 @@ dsm walk config.json listing.json
 `validate` checks the schema and every cross-reference. `walk` reports what the config actually finds. Read all of it:
 
 - **Entities per type.** Compare against the counts the survey implied. Too few means a pattern is too tight; too many means noise is being counted as data.
-- **`(N without a folder or files of their own)`.** An entity inferred from a descendant's name. Correct for a subject that has no folder; a mistake if that subject does have one and your layout missed the level.
+- **`(N without a folder or files of their own)`.** An entity inferred from a descendant's name. Correct for a subject that has no folder; a mistake if that subject does have one and your layout missed the level. Such an entity still gets every field you declared for it: a cell's date read from its recording file names lands on the cell record, and a `metadata-conflict` there means its descendants disagree about it.
 - **`Unmatched`.** `excluded` is a success - you wrote that rule. `no-match` is unfinished work: the detail names the level that rejected the entry. Drive `no-match` to zero, or be able to say why each remaining one is genuinely not data.
 - **Issues.** `missing-required-file` usually means `isRequired` is too strict. `cardinality-violation` means `one` was wrong, or the pattern is catching a backup file. `duplicate-entity` means two folders produced one identity - decide whether they are the same entity or the pattern is too loose. `extraction-failed` means a rule matched nothing.
 
