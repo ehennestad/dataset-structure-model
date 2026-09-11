@@ -158,7 +158,7 @@ def name_matches(level, name, definitions):
 
 # --------------------------------------------------------------------------- extraction
 
-LDML_TOKENS = [("yyyy", "%Y"), ("MM", "%m"), ("dd", "%d"), ("HH", "%H"), ("mm", "%M"), ("ss", "%S")]
+LDML_TOKENS = [("yyyy", "%Y"), ("yy", "%y"), ("MM", "%m"), ("dd", "%d"), ("HH", "%H"), ("mm", "%M"), ("ss", "%S")]
 
 
 def ldml_to_strftime(fmt):

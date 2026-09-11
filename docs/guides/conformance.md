@@ -98,7 +98,7 @@ These are the rules a reader implements; each is exercised by at least one case.
 | `folder-hierarchy-basic` | two folder levels, `substring`/`regex`, `excludePatterns`, required and single-cardinality patterns, duplicate folders, identity scoped by parent |
 | `flat-session-files` | file-level grouping (mirrors `examples/flat_session_files.json`), token patterns, ancestors with no folder |
 | `raw-processed-matching` | structural date level, cross-location matching, one-sided entities, derived `matchPattern`, `additionalFolders` (mirrors `examples/raw_processed_two_photon.json`) |
-| `extraction-methods` | every declarative method and modifier: slices, groups, whole match, template, fixed, normalize, LDML formats, integer typing, `defaultValue`, `extraction-failed`, fixed structural level |
+| `extraction-methods` | every declarative method and modifier: slices, groups, whole match, template, fixed, normalize, LDML formats including a two-digit year and its 1969–2068 pivot, integer typing, `defaultValue`, `extraction-failed`, fixed structural level |
 | `function-extractor` | the registry-key contract, null return, `requiresExtractors` |
 | `invalid-reference` | must be refused with `reference-integrity` |
 | `invalid-schema` | must be refused with `schema-validation` |

@@ -3,6 +3,13 @@
 All notable changes to the Dataset Structure Model schema are documented here.
 This project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- `valueFormat` accepts a two-digit year (`yy`). The Python reader translated only `yyyy`, so `yyMMdd` failed with `extraction-failed` while the MATLAB reader parsed it; the readers disagreed on the same config.
+- Two-digit years take a fixed pivot, 1969–2068, in both readers. MATLAB's `datetime` default pivot moves with the current year; the reader now passes `PivotYear` 1969.
+- The portable `valueFormat` token subset (`yyyy yy MM dd HH mm ss`, quoted literals) is stated in the schema description and `docs/reference/metadata-extraction.md`; the `extraction-methods` conformance case pins the two-digit year and the pivot.
+
 ## [1.0.0] - 2026-09-09
 
 First release: the frozen core. Readers implement this version, configs rely on it, and the blocks marked DRAFT are the only parts that may change without a major bump.

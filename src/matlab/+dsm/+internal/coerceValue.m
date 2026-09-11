@@ -2,7 +2,10 @@ function value = coerceValue(value, definition, rule)
 %coerceValue Type a raw extracted value per the definition's dataType; [] when it cannot be typed
 %
 %   Dates, times and datetimes are parsed with the rule's valueFormat (LDML,
-%   which datetime reads natively) and returned as ISO 8601 strings.
+%   which datetime reads natively) and returned as ISO 8601 strings. A
+%   two-digit year (yy) is placed in 1969-2068, the window Python's strptime
+%   uses, so both readers give the same date; datetime's default pivot would
+%   move with the current year.
 
     dataType = string(dsm.internal.getField(definition, "dataType", "string"));
     try
@@ -10,7 +13,7 @@ function value = coerceValue(value, definition, rule)
             case {"date", "time", "datetime"}
                 format = string(dsm.internal.getField(rule, "valueFormat", ""));
                 if (ischar(value) || isstring(value)) && format ~= ""
-                    parsed = datetime(char(value), "InputFormat", char(format));
+                    parsed = datetime(char(value), "InputFormat", char(format), "PivotYear", 1969);
                     switch dataType
                         case "date"
                             parsed.Format = "yyyy-MM-dd";

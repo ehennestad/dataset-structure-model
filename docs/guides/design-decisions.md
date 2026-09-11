@@ -106,6 +106,8 @@ Identifiers are human-chosen and may be renamed. Tools that persist references t
 
 Patterns run in MATLAB `regexp` and Python `re`, whose dialects differ (named groups, for one). The schema documents the common subset rather than picking a language. Date formats use Unicode LDML because MATLAB and Java are native to it and the translation to `strftime` is mechanical.
 
+Only a fixed token subset is portable (`yyyy`, `yy`, `MM`, `dd`, `HH`, `mm`, `ss`, quoted literals), because each reader translates or validates them itself, and a token one reader understands and the other does not yields a value in one and an `extraction-failed` issue in the other. Two-digit years take a fixed pivot, 1969–2068, so that both readers place `69` in 1969: `strptime` has this window built in, while MATLAB's default pivot is fifty years before the current year and would give a different century as time passes. Real datasets carry six-digit dates such as `170518`, so `yy` had to be in the subset.
+
 ---
 
 ## The entity record is part of the spec

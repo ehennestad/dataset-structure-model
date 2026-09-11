@@ -53,6 +53,10 @@ def test_slices_are_python_slices(spec, expected):
     ("yyyy_MM_dd", "2025_05_23", "date", "2025-05-23"),
     ("HH_mm_ss", "10_00_00", "time", "10:00:00"),
     ("yyyy-MM-dd'T'HHmmss", "2025-05-23T100000", "datetime", "2025-05-23T10:00:00"),
+    ("yyMMdd", "170518", "date", "2017-05-18"),
+    # two-digit years fall in 1969-2068, the strptime window; the MATLAB reader pins the same pivot
+    ("yyMMdd", "690518", "date", "1969-05-18"),
+    ("yyMMdd", "680518", "date", "2068-05-18"),
 ])
 def test_ldml_formats_parse_to_iso(fmt, text, data_type, expected):
     assert parse_temporal(text, fmt, data_type) == expected
@@ -60,6 +64,8 @@ def test_ldml_formats_parse_to_iso(fmt, text, data_type, expected):
 
 def test_ldml_translation():
     assert ldml_to_strftime("yyyy-MM-dd'T'HH:mm:ss") == "%Y-%m-%dT%H:%M:%S"
+    assert ldml_to_strftime("yyMMdd") == "%y%m%d"
+    assert ldml_to_strftime("yyyyyy") == "%Y%y"  # the longer token is matched first
 
 
 def test_normalize_modes():

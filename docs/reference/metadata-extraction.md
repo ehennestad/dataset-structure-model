@@ -73,7 +73,22 @@ Read the value from a file inside the entity folder (`filePattern`, `contentPath
 
 ## `valueFormat`
 
-For `date`, `time` and `datetime` fields: the pattern the extracted text is parsed with, in **Unicode LDML** notation as used by MATLAB `datetime` and Java — `yyyyMMdd`, `yyyy_MM_dd`, `HH_mm_ss`, `yyyy-MM-dd'T'HHmmss`. Python readers translate to `strftime` directives.
+For `date`, `time` and `datetime` fields: the pattern the extracted text is parsed with, in **Unicode LDML** notation as used by MATLAB `datetime` and Java — `yyyyMMdd`, `yyyy_MM_dd`, `HH_mm_ss`, `yyyy-MM-dd'T'HHmmss`, `yyMMdd`. Python readers translate to `strftime` directives.
+
+Readers support this token subset and nothing else; a format outside it is not portable:
+
+| Token | Meaning | `strftime` |
+|-------|---------|------------|
+| `yyyy` | four-digit year | `%Y` |
+| `yy` | two-digit year | `%y` |
+| `MM` | month, two digits | `%m` |
+| `dd` | day, two digits | `%d` |
+| `HH` | hour 00–23 | `%H` |
+| `mm` | minute | `%M` |
+| `ss` | second | `%S` |
+| `'…'` | literal text | as is |
+
+**Two-digit years** fall in 1969–2068: `69` is 1969, `68` is 2068. This is the window Python's `strptime` uses; a MATLAB reader must pass `PivotYear` 1969 to `datetime`, because its default pivot moves with the current year and the two readers would otherwise disagree on the same config.
 
 ## `normalize`
 
